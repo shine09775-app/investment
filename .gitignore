@@ -1,0 +1,25 @@
+# Cloudflare / Wrangler build cache & local state
+.wrangler/
+
+# Dependencies
+node_modules/
+
+# Secrets — wrangler local env vars, never commit
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
+# OneDrive / Windows / editor cruft
+desktop.ini
+Thumbs.db
+.DS_Store
+*.swp
+*~
+
+# Logs & scratch output
+*.log
+sea_live.json

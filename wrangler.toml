@@ -1,0 +1,7 @@
+name = "mega-trend-portfolio"
+pages_build_output_dir = "deploy"
+compatibility_date = "2026-07-02"
+
+# Workers AI — powers the "Kirin" portfolio analysis endpoint (/api/kirin)
+[ai]
+binding = "AI"

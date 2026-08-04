@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mega Trend Portfolio · Buffett Timing</title>
+
+<!-- PWA / Add to Home Screen -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0e17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mega Port">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<meta name="description" content="พอร์ตลงทุน Mega Trend พร้อมจังหวะซื้อแบบ Warren Buffett · ราคา realtime จาก Yahoo Finance">
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#111726; --card:#151c2c; --line:#222b3f;
+    --txt:#e8eef7; --sub:#8a96ab; --mut:#5d6a82;
+    --green:#26c281; --teal:#2dd4bf; --yellow:#f0c040; --orange:#f59e42; --red:#ef5365;
+    --blue:#4f8cff; --purple:#9b7bff;
+    --shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Sukhumvit Set","Noto Sans Thai",sans-serif;
+    max-width:520px;margin:0 auto;padding:0 0 60px;line-height:1.5;
+  }
+  .wrap{padding:0 14px;}
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,#0a0e17 70%,rgba(10,14,23,.0));
+    padding:18px 14px 10px;
+  }
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px;}
+  .sub{color:var(--sub);font-size:12px;margin-top:2px;}
+  .quote{
+    font-style:italic;color:var(--teal);font-size:12.5px;margin:8px 0 0;
+    border-left:3px solid var(--teal);padding-left:10px;min-height:34px;
+  }
+
+  /* Gauge */
+  .gauge-card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin:12px 0;box-shadow:var(--shadow);
+  }
+  .gauge-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
+  .gauge-label{font-size:12px;color:var(--sub);}
+  .gauge-val{font-size:30px;font-weight:800;line-height:1;}
+  .gauge-mood{font-size:13px;font-weight:700;margin-top:3px;}
+  .bar{height:9px;border-radius:6px;background:linear-gradient(90deg,#ef5365,#f59e42,#f0c040,#2dd4bf,#26c281);position:relative;}
+  .bar .pin{position:absolute;top:-4px;width:4px;height:17px;border-radius:3px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);transform:translateX(-50%);transition:left .8s cubic-bezier(.2,.8,.2,1);}
+  .bar-legend{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-top:6px;}
+
+  /* Kirin AI card */
+  .kirin{
+    background:linear-gradient(180deg,#16203a 0%,#121a2b 100%);
+    border:1px solid #2b3a5c;border-radius:16px;padding:15px 16px;margin:0 0 12px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .kirin::before{content:"";position:absolute;top:-40px;right:-30px;width:120px;height:120px;
+    background:radial-gradient(circle,rgba(155,123,255,.22),transparent 70%);pointer-events:none;}
+  .kirin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .kirin-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px;}
+  .kirin-title .tag{font-size:9px;font-weight:700;color:var(--purple);border:1px solid #3a3060;border-radius:6px;padding:2px 6px;letter-spacing:.4px;}
+  .kirin-btn{
+    border:none;border-radius:20px;padding:7px 13px;font-size:11.5px;font-weight:700;cursor:pointer;
+    background:var(--purple);color:#0a0e17;font-family:inherit;flex-shrink:0;
+  }
+  .kirin-btn:disabled{opacity:.5;}
+  .kirin-btn:active{transform:scale(.95);}
+  .kirin-text{font-size:12.8px;line-height:1.72;margin-top:12px;white-space:pre-wrap;color:#dfe6f2;}
+  .kirin-text b{color:#fff;}
+  .kirin-meta{font-size:10px;color:var(--mut);margin-top:10px;}
+  .kirin-quota{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:11px;color:var(--sub);flex-wrap:wrap;}
+  .kirin-quota .meter{display:flex;gap:4px;}
+  .kirin-quota .d{width:9px;height:9px;border-radius:50%;background:#2b3a5c;transition:background .2s;}
+  .kirin-quota .d.used{background:var(--purple);}
+  .kirin-quota .rem{font-weight:700;color:var(--txt);}
+  .kirin-quota .rem.empty{color:var(--orange);}
+  .kirin .loading{margin-top:12px;}
+  .kirin .dots::after{content:"…";animation:dots 1.3s steps(4,end) infinite;}
+  @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+  .section-title{
+    font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;
+    letter-spacing:.8px;margin:22px 4px 8px;display:flex;align-items:center;gap:8px;
+  }
+  .section-title .dot{width:8px;height:8px;border-radius:50%;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:13px 14px;margin-bottom:10px;position:relative;overflow:hidden;
+    cursor:pointer;
+  }
+  .card:active{transform:scale(.99);}
+
+  /* Chart modal */
+  #chartModal{display:none;position:fixed;inset:0;z-index:100;background:rgba(5,8,14,.78);}
+  .cm-sheet{
+    max-width:520px;margin:0 auto;height:100%;overflow-y:auto;
+    background:var(--bg);border-left:1px solid var(--line);border-right:1px solid var(--line);
+  }
+  .cm-head{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 16px 12px;border-bottom:1px solid var(--line);}
+  .cm-name{font-size:20px;font-weight:800;}
+  .cm-tick{font-size:12px;color:var(--sub);margin-top:2px;}
+  .cm-x{
+    width:36px;height:36px;border-radius:50%;border:none;background:var(--card);color:var(--txt);
+    font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;
+  }
+  .cm-price{padding:16px 16px 6px;}
+  .cm-price .p{font-size:32px;font-weight:800;display:inline-block;}
+  .cm-price .c{font-size:14px;font-weight:700;margin-left:10px;}
+  .cm-ranges{display:flex;gap:8px;padding:10px 16px;flex-wrap:wrap;}
+  .cm-ranges button{
+    border:none;border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:700;
+    background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;
+  }
+  .cm-ranges button.on{background:var(--green);color:#04170e;}
+  .cm-chart{padding:4px 16px;min-height:220px;}
+  .cm-chart svg{width:100%;height:auto;display:block;}
+  .cm-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);padding:2px 16px 8px;}
+  .cm-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 16px 24px;}
+  .cm-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;}
+  .cm-stat .k{font-size:11.5px;color:var(--sub);}
+  .cm-stat .v{font-size:17px;font-weight:800;margin-top:4px;}
+  .cm-note{text-align:center;font-size:10.5px;color:var(--mut);padding:0 16px 26px;}
+  .card .accent{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .row1{display:flex;justify-content:space-between;align-items:flex-start;}
+  .tk{font-size:16px;font-weight:800;letter-spacing:.3px;}
+  .nm{font-size:11px;color:var(--sub);margin-top:1px;max-width:160px;}
+  .price{font-size:16px;font-weight:700;text-align:right;}
+  .chg{font-size:12px;font-weight:600;text-align:right;margin-top:1px;}
+  .badge{
+    display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;
+    margin-top:7px;letter-spacing:.3px;
+  }
+  .pill{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--bg2);color:var(--sub);border:1px solid var(--line);}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:6px;margin-top:11px;}
+  .met{background:var(--bg2);border-radius:9px;padding:7px 8px;text-align:center;}
+  .met .k{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;}
+  .met .v{font-size:13px;font-weight:700;margin-top:2px;}
+
+  .loading{color:var(--sub);font-size:12px;}
+  .skel{animation:pulse 1.3s infinite;background:var(--bg2);border-radius:6px;height:14px;width:60px;display:inline-block;}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+  .err{color:var(--red);font-size:11px;}
+
+  footer{text-align:center;color:var(--mut);font-size:10.5px;margin-top:24px;padding:0 18px;line-height:1.7;}
+  .refresh{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:var(--blue);color:#fff;border:none;border-radius:30px;
+    padding:11px 22px;font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(79,140,255,.45);
+    z-index:30;display:flex;align-items:center;gap:8px;cursor:pointer;
+  }
+  .refresh:active{transform:translateX(-50%) scale(.95);}
+  .spin{animation:rot 1s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .updated{text-align:center;font-size:10.5px;color:var(--mut);margin:4px 0 0;}
+  .alloc{display:flex;gap:6px;margin:4px 0 0;flex-wrap:wrap;}
+  .alloc .a{
+    flex:1;min-width:62px;background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:8px 4px;text-align:center;cursor:pointer;color:var(--txt);font-family:inherit;
+    transition:border-color .15s;
+  }
+  .alloc .a:active{transform:scale(.95);}
+  .alloc .a.active{background:#18233a;}
+  .alloc .a .k{font-size:9.5px;color:var(--sub);white-space:nowrap;}
+  .alloc .a .v{font-size:13px;font-weight:800;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 Mega Trend Portfolio</h1>
+  <div class="sub">IPS · Chaiwat Thepjun — ลงทุนตาม Mega Trend ของโลก</div>
+  <div class="quote" id="quote"></div>
+</header>
+
+<div id="offlineBar" style="display:none;margin:0 14px 4px;padding:8px 12px;background:rgba(245,158,66,.14);border:1px solid rgba(245,158,66,.4);border-radius:10px;color:#f5b969;font-size:12px;font-weight:600;text-align:center;">
+  📡 ออฟไลน์ · กำลังแสดงราคาล่าสุดที่บันทึกไว้
+</div>
+
+<div class="wrap">
+
+  <!-- Fear/Greed Buffett gauge -->
+  <div class="gauge-card">
+    <div class="gauge-top">
+      <div>
+        <div class="gauge-label">⚖️ Buffett Opportunity Index</div>
+        <div class="gauge-mood" id="moodTxt">กำลังคำนวณ…</div>
+      </div>
+      <div style="text-align:right">
+        <div class="gauge-val" id="gaugeVal">–</div>
+        <div class="gauge-label">/ 100</div>
+      </div>
+    </div>
+    <div class="bar"><div class="pin" id="pin" style="left:50%"></div></div>
+    <div class="bar-legend"><span>แพง (รอ)</span><span>กลาง</span><span>ถูก (โอกาส)</span></div>
+    <div style="font-size:11px;color:var(--sub);margin-top:10px;line-height:1.6">
+      ค่าเฉลี่ยจังหวะของ <b>หุ้น watchlist เราเอง</b> (เฉพาะตัวที่ประเมินมูลค่าได้ — ไม่รวม Income/Moonshot/หุ้นที่ยังไม่มี P/E)<br>
+      ⚠️ ไม่ใช่ดัชนีตลาดจริง · หุ้นเรากระจุกธีม AI — ถ้าย่อพร้อมกัน ค่านี้จะพุ่งเพราะกระจุกตัว ไม่ใช่ตลาดกลัว<br>
+      <b>Valuation 50%</b> (P/E vs มัธยฐานอดีต) · ย่อจาก High 30% · RSI 20%
+    </div>
+  </div>
+
+  <!-- Kirin — วิเคราะห์สถานการณ์พอร์ตด้วย AI -->
+  <div class="kirin">
+    <div class="kirin-head">
+      <div class="kirin-title">🐉 Kirin <span class="tag">AI ANALYST</span></div>
+      <button class="kirin-btn" id="kirinBtn" onclick="runKirin()">🔮 วิเคราะห์</button>
+    </div>
+    <div class="kirin-quota" id="kirinQuota"></div>
+    <div id="kirinBody">
+      <div class="loading" style="margin-top:12px;">แตะปุ่ม "วิเคราะห์" ให้ Kirin อ่านสถานการณ์พอร์ตของคุณ</div>
+    </div>
+    <div class="kirin-meta" id="kirinMeta"></div>
+  </div>
+
+  <!-- IPS allocation — สร้างจาก GROUPS ตัวเดียวกับการ์ดด้านล่าง กดเพื่อกรองกลุ่ม -->
+  <div class="alloc" id="allocBar"></div>
+
+  <div id="cashNote" class="card" style="display:none;margin-top:10px;">
+    <div class="accent" style="background:var(--yellow)"></div>
+    <div class="tk">💰 Cash Opportunity · 10%</div>
+    <div class="nm" style="max-width:none;margin-top:6px;line-height:1.6">
+      เงินสดรอจังหวะตาม IPS — ไม่มีหุ้นในกลุ่มนี้<br>
+      ใช้เข้าซื้อเมื่อหุ้น watchlist ถูกเทียบประวัติ (Index สูง) — ทยอยเป็นไม้ ไม่เทหมดทีเดียว
+    </div>
+  </div>
+
+  <div id="content"></div>
+
+  <div class="updated" id="dataRange" style="margin-top:14px;color:var(--sub);font-weight:600;"></div>
+  <div class="updated" id="updated"></div>
+
+  <footer>
+    ข้อมูลราคาจาก Yahoo Finance (อาจดีเลย์ ~15 นาที) ผ่าน Cloudflare edge · รองรับ Offline<br>
+    การ์ดมี 2 โหมดตาม IPS — 🔵 <b>DCA ตามแผน</b> (ไม่มี P/E ที่เชื่อถือได้ · Income · Moonshot) และ 🟢 <b>จังหวะ Buffett</b> (หุ้นทั่วไปที่มีกำไรจริง)<br>
+    "จังหวะ Buffett" = Valuation 50% (P/E จากงบปี เทียบมัธยฐาน P/E ของตัวเอง — ใช้ฐาน EPS เดียวกันทั้งอดีตและปัจจุบัน)<br>
+    + ส่วนลดจาก High 52w 30% · RSI(14) 20% (ตัด MA200 ออก เพราะซ้ำกับส่วนลด 52w)<br>
+    ปิดคะแนนจังหวะเมื่อ: ขาดทุน · งบปีน้อยกว่า 2 ปี · ประวัติ P/E สั้นกว่า 24 เดือน · EPS โตเกิน 3 เท่าในหน้าต่างเทียบ<br>
+    (EPS โตแรง ทำให้ "มัธยฐาน P/E" สะท้อนช่วงที่กำไรยังน้อย ไม่ใช่มูลค่าปกติ — เทียบแล้วจะดูถูกเกินจริง)<br>
+    Income (SCHD/JEPQ) ไม่ใช้ Buffett score — ดู Yield TTM เทียบมัธยฐานในอดีต + การเติบโตปันผลแทน<br>
+    <b>เครื่องมือช่วยจับจังหวะเข้าซื้อเท่านั้น — ไม่ใช่คำแนะนำให้ขาย Thesis ระยะยาว</b><br>
+    สัญญาณนี้ใช้ "เพิ่มน้ำหนัก" ตอนตลาดกลัว — ไม่ใช่เหตุผลให้หยุด DCA ประจำ (IPS: DCA อย่างมีวินัย)<br>
+    Don't invest in stock prices. Invest in the future of humanity.
+  </footer>
+</div>
+
+<button class="refresh" id="refreshBtn" onclick="loadAll()">
+  <span id="refIcon">↻</span> รีเฟรช
+</button>
+
+<!-- Chart modal: กดการ์ดหุ้นเพื่อดูกราฟย้อนหลัง -->
+<div id="chartModal">
+  <div class="cm-sheet">
+    <div class="cm-head">
+      <div>
+        <div class="cm-name" id="cmName">–</div>
+        <div class="cm-tick" id="cmTick">–</div>
+      </div>
+      <button class="cm-x" onclick="closeChart()">✕</button>
+    </div>
+    <div class="cm-price">
+      <span class="p" id="cmPrice">–</span>
+      <span class="c" id="cmChg"></span>
+    </div>
+    <div class="cm-ranges" id="cmRanges"></div>
+    <div class="cm-chart" id="cmChart"><div class="loading" style="padding:40px 0;text-align:center;">⏳ กำลังโหลดกราฟ…</div></div>
+    <div class="cm-axis"><span id="cmD1"></span><span id="cmD2"></span></div>
+    <div class="cm-stats">
+      <div class="cm-stat"><div class="k">Period High</div><div class="v" style="color:var(--green)" id="cmHigh">–</div></div>
+      <div class="cm-stat"><div class="k">Period Low</div><div class="v" style="color:var(--red)" id="cmLow">–</div></div>
+      <div class="cm-stat"><div class="k">Period Start</div><div class="v" id="cmStart">–</div></div>
+      <div class="cm-stat"><div class="k">Period Change</div><div class="v" id="cmPchg">–</div></div>
+    </div>
+    <div class="cm-note" id="cmNote"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Universe (จาก IPS) ---------- */
+const GROUPS = [
+  { title:"AI Infrastructure", short:"AI Infra", color:"var(--blue)", target:"30%",
+    items:[
+      {t:"NVDA", n:"NVIDIA · AI Compute", status:"OWN"},
+      {t:"AVGO", n:"Broadcom · AI Network", status:"BUY1"},
+      {t:"ASML", n:"ASML · Semiconductor", status:"BUY2"},
+    ]},
+  { title:"Energy / Data Center", short:"Energy", color:"var(--green)", target:"30%",
+    items:[
+      {t:"ETN",  n:"Eaton · Power/Grid", status:"WATCH"},
+      {t:"VRT",  n:"Vertiv · Cooling/DC", status:"WATCH"},
+      {t:"CEG",  n:"Constellation · Power", status:"WATCH"},
+      {t:"GEV",  n:"GE Vernova · Grid", status:"WATCH"},
+    ]},
+  { title:"Cloud", short:"Cloud", color:"var(--purple)", target:"20%",
+    items:[
+      {t:"MSFT", n:"Microsoft · Cloud", status:"OWN"},
+      {t:"AMZN", n:"Amazon · AWS", status:"BUY3"},
+      {t:"GOOG", n:"Alphabet · Cloud/AI", status:"BUY4"},
+    ]},
+  { title:"AI Application", short:"AI App", color:"var(--teal)", target:"—",
+    items:[
+      {t:"META", n:"Meta · AI Application", status:"OWN"},
+    ]},
+  { title:"Healthcare AI", short:"Health", color:"var(--yellow)", target:"10%",
+    items:[
+      {t:"LLY",  n:"Eli Lilly · Longevity", status:"WATCH"},
+    ]},
+  { title:"Income Portfolio", short:"Income", color:"var(--orange)", target:"10-15%",
+    items:[
+      {t:"SCHD", n:"Schwab · Dividend Growth", status:"INC"},
+      {t:"JEPQ", n:"JPM Nasdaq · Cash Flow", status:"INC"},
+    ]},
+  { title:"Moonshot (≤5%)", short:"Moonshot", color:"var(--red)", target:"≤5%",
+    items:[
+      {t:"RKLB", n:"Rocket Lab · Space", status:"MOON"},
+      {t:"RXRX", n:"Recursion · AI Drug", status:"MOON"},
+      {t:"QBTS", n:"D-Wave · Quantum", status:"MOON"},
+      {t:"RGTI", n:"Rigetti · Quantum", status:"MOON"},
+      {t:"BBAI", n:"BigBear · Defense AI", status:"MOON"},
+    ]},
+];
+
+const STATUS_LABEL = {
+  OWN:{l:"ถืออยู่ ✅",c:"var(--green)"},
+  BUY1:{l:"Next Buy #1",c:"var(--blue)"},
+  BUY2:{l:"Next Buy #2",c:"var(--blue)"},
+  BUY3:{l:"Next Buy #3",c:"var(--blue)"},
+  BUY4:{l:"Next Buy #4",c:"var(--blue)"},
+  WATCH:{l:"Watchlist",c:"var(--sub)"},
+  INC:{l:"Income",c:"var(--orange)"},
+  MOON:{l:"Moonshot",c:"var(--red)"},
+};
+
+const QUOTES = [
+  "Be fearful when others are greedy, and greedy when others are fearful.",
+  "Price is what you pay. Value is what you get.",
+  "Our favorite holding period is forever.",
+  "The stock market is a device to transfer money from the impatient to the patient.",
+  "Buy the future, not the past. — IPS",
+  "We don't invest in stock prices. We invest in the future of humanity.",
+];
+
+/* ---------- Data source: our own Cloudflare proxy first, then public fallbacks ---------- */
+const yUrl = (t,rg,iv,ev) => `https://query1.finance.yahoo.com/v8/finance/chart/${t}?range=${rg}&interval=${iv}` + (ev?`&events=${ev}`:"");
+const SOURCES = [
+  (t,rg,iv,ev) => `./api/chart?symbol=${t}&range=${rg}&interval=${iv}` + (ev?`&events=${ev}`:""),   // our Pages Function (same-origin, fast)
+  (t,rg,iv,ev) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(yUrl(t,rg,iv,ev)),
+  (t,rg,iv,ev) => "https://corsproxy.io/?url=" + encodeURIComponent(yUrl(t,rg,iv,ev)),
+  (t,rg,iv,ev) => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(yUrl(t,rg,iv,ev)),
+];
+
+async function fetchWithTimeout(url, ms){
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, {cache:"no-store", signal:ctrl.signal}); }
+  finally { clearTimeout(id); }
+}
+
+async function fetchYahoo(ticker, range="1y", interval="1d", events=""){
+  for(let i=0; i<SOURCES.length; i++){
+    // give our own proxy more time; public proxies fail fast so we move on quickly
+    const ms = i === 0 ? 9000 : 6000;
+    try{
+      const r = await fetchWithTimeout(SOURCES[i](ticker, range, interval, events), ms);
+      if(!r.ok) continue;
+      const j = await r.json();
+      if(j?.chart?.result?.[0]){
+        if(r.headers.get("x-from-cache")) window.__fromCache = true; // served by SW offline
+        return j.chart.result[0];
+      }
+    }catch(e){ /* timed out or failed — try next source */ }
+  }
+  throw new Error("no data");
+}
+
+/* ---------- Valuation: trailing P/E เทียบมัธยฐาน P/E ในอดีตของตัวเอง ---------- */
+async function fetchEps(t){
+  try{
+    const r = await fetchWithTimeout(`./api/eps?symbol=${t}`, 9000);
+    if(!r.ok) return null;
+    const j = await r.json();
+    const out = {q:[], a:[]};
+    for(const res of j?.timeseries?.result || []){
+      const type = res?.meta?.type?.[0];
+      const rows = (res[type]||[]).filter(x=>x && x.reportedValue && x.reportedValue.raw!=null);
+      // เรียงตามวันที่จากเก่า->ใหม่ ที่ต้นทาง — อย่าเชื่อลำดับที่ Yahoo ส่งมา (กันสมมติฐานลำดับผิดทุกจุด)
+      const arr = rows.map(x=>({d:x.asOfDate, eps:x.reportedValue.raw})).sort((a,b)=>new Date(a.d)-new Date(b.d));
+      if(type==="quarterlyDilutedEPS") out.q = arr;
+      if(type==="annualDilutedEPS")   out.a = arr;
+    }
+    return out;
+  }catch(e){ return null; }
+}
+
+/* P/E ปัจจุบัน และแบนด์ P/E ในอดีต ต้องคิดจากฐานเดียวกัน คือ "EPS งบปีล่าสุดที่รู้แล้ว ณ เวลานั้น"
+   เดิมเอา TTM รายไตรมาสสด ๆ (ตัวเศษใหม่) ไปหารด้วยแบนด์ที่สร้างจากงบปีเก่าถึง 15 เดือน (ตัวส่วนเก่า)
+   -> หุ้นที่กำไรกำลังโตเร็วจะดู "ถูก" เกินจริงอย่างเป็นระบบ
+   Yahoo ให้งบปีย้อนหลังแค่ ~4 ปี และไตรมาสแค่ 5 ไตรมาส จึงสร้าง TTM ย้อนหลังจริง ๆ ไม่ได้ */
+const VAL_MAX_EPS_SPREAD = 3;   // EPS สูงสุด/ต่ำสุดในหน้าต่าง เกินเท่านี้ = มัธยฐาน P/E สะท้อน "ช่วงกำไรยังน้อย" ไม่ใช่มูลค่าปกติ
+const VAL_MIN_POINTS     = 24;  // ต้องมีจุด P/E รายเดือน ≥ 2 ปี ถึงจะเรียกว่าแบนด์ได้
+
+// คำนวณครั้งเดียวต่อวัน/ตัว แล้วแคชใน localStorage (EPS + แบนด์ P/E เปลี่ยนช้า)
+// คืน {curPE, medPE, ratio} เมื่อเชื่อถือได้ / คืน {reason} เมื่อไม่พอ -> การ์ดจะตกไปโหมด DCA
+async function getValuation(t, price){
+  const KEY = "val2:"+t;  // ขึ้นเวอร์ชันคีย์ เพราะสูตรเปลี่ยน แคชเดิมใช้ไม่ได้
+  try{
+    let c = null;
+    try{ c = JSON.parse(localStorage.getItem(KEY)||"null"); }catch(_){}
+    if(!c || Date.now()-c.ts > 24*3600*1000){
+      c = {ts:Date.now(), eps:null, medPE:null, reason:"ไม่มีข้อมูลงบกำไร"};
+      const raw = await fetchEps(t);
+      // อย่าเชื่อลำดับที่ Yahoo ส่งมา — เรียงเองก่อนใช้
+      const ann = (raw?.a||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d));
+      const pos = ann.filter(x=>x.eps>0);
+
+      if(ann.length < 2){
+        c.reason = "งบปีย้อนหลังไม่พอ (ต้องมี ≥ 2 ปี)";
+      }else if(pos.length < 2){
+        c.reason = "บริษัทขาดทุน — ไม่มี P/E ให้เทียบ";
+      }else{
+        const hi = Math.max(...pos.map(x=>x.eps)), lo = Math.min(...pos.map(x=>x.eps));
+        if(hi/lo > VAL_MAX_EPS_SPREAD){
+          c.reason = `กำไรโตเร็วเกินกว่าจะเทียบอดีต (EPS ${lo.toFixed(2)}→${hi.toFixed(2)} = ${(hi/lo).toFixed(1)}×)`;
+        }else{
+          const hist = await fetchYahoo(t, "5y", "1mo");
+          const ts = hist.timestamp||[], cl = hist.indicators?.quote?.[0]?.close||[];
+          const LAG = 45*86400*1000; // งบออกช้ากว่าปิดงวด ~45 วัน
+          const epsAt = tm => { let e=null; for(const x of ann){ if(new Date(x.d).getTime()+LAG <= tm) e = x.eps; } return e; };
+          const pes = [];
+          for(let i=0;i<ts.length;i++){
+            const px = cl[i]; if(px==null) continue;
+            const e = epsAt(ts[i]*1000);
+            if(e!=null && e>0) pes.push(px/e);
+          }
+          if(pes.length < VAL_MIN_POINTS){
+            c.reason = `ประวัติ P/E สั้นเกินไป (${pes.length}/${VAL_MIN_POINTS} เดือน)`;
+          }else{
+            pes.sort((a,b)=>a-b);
+            c.medPE = pes[Math.floor(pes.length/2)];      // มัธยฐาน ทนต่อ P/E พุ่งช่วงกำไรต่ำ
+            c.eps   = epsAt(Date.now()) ?? ann[ann.length-1].eps;  // ฐานเดียวกับแบนด์ = like-for-like
+            c.reason = (c.eps > 0) ? null : "กำไรงบปีล่าสุดติดลบ";
+          }
+        }
+      }
+      try{ localStorage.setItem(KEY, JSON.stringify(c)); }catch(_){}
+    }
+    if(c.eps>0 && c.medPE>0){
+      const curPE = price/c.eps;
+      return {curPE, medPE:c.medPE, ratio:curPE/c.medPE};
+    }
+    return {reason:c.reason || "ข้อมูลมูลค่าไม่พอ"};
+  }catch(e){
+    return {reason:"ดึงข้อมูลงบไม่สำเร็จ"};
+  }
+}
+// valuation ใช้ได้จริงหรือไม่ — ใช้ตัวนี้แทนการเช็ก truthiness ของ val ทุกที่
+const okVal = v => !!(v && v.ratio > 0);
+
+/* ---------- Income stats (SCHD/JEPQ): yield + การเติบโตปันผล — ไม่ใช้ Buffett score ---------- */
+// คำนวณครั้งเดียวต่อวัน/ตัว แคช localStorage; curYield คิดสดจากราคาล่าสุดเสมอ
+async function getIncomeStats(t, price){
+  try{
+    const KEY = "inc1:"+t;
+    let c = null;
+    try{ c = JSON.parse(localStorage.getItem(KEY)||"null"); }catch(_){}
+    if(!c || Date.now()-c.ts > 24*3600*1000){
+      c = {ts:Date.now(), ttmDiv:null, growth:null, medYield:null};
+      const hist = await fetchYahoo(t, "5y", "1mo", "div");
+      const divs = hist.events?.dividends
+        ? Object.values(hist.events.dividends).filter(d=>d&&d.amount>0).sort((a,b)=>a.date-b.date) : [];
+      if(divs.length >= 4){
+        const now = Date.now()/1000, YR = 365.25*86400;
+        const ttm = t0 => divs.filter(d=>d.date>t0-YR && d.date<=t0).reduce((s,d)=>s+d.amount,0);
+        const cur = ttm(now);
+        if(cur > 0){
+          c.ttmDiv = cur;
+          // การเติบโตปันผล: CAGR เทียบ TTM เมื่อ N ปีก่อน (มากสุด 3 ปี ตามข้อมูลที่มี)
+          const spanY = (now - divs[0].date)/YR;
+          const back = Math.min(3, Math.floor(spanY-1));
+          if(back >= 1){
+            const past = ttm(now - back*YR);
+            if(past > 0) c.growth = (Math.pow(cur/past, 1/back)-1)*100;
+          }
+          // มัธยฐาน yield ในอดีต: yield(t) = TTM div ณ เวลานั้น / ราคา ณ เวลานั้น
+          const ts = hist.timestamp||[], cl = hist.indicators?.quote?.[0]?.close||[];
+          const ys = [];
+          for(let i=0;i<ts.length;i++){
+            if(cl[i]==null || ts[i] < divs[0].date + YR) continue; // ต้องมีปันผลครบปีก่อน
+            const d = ttm(ts[i]);
+            if(d>0) ys.push(d/cl[i]*100);
+          }
+          if(ys.length >= 12){
+            ys.sort((a,b)=>a-b);
+            c.medYield = ys[Math.floor(ys.length/2)];
+          }
+        }
+      }
+      localStorage.setItem(KEY, JSON.stringify(c));
+    }
+    if(c.ttmDiv > 0){
+      const curYield = c.ttmDiv/price*100;
+      return {ttmDiv:c.ttmDiv, curYield, growth:c.growth, medYield:c.medYield,
+              ratio: c.medYield ? curYield/c.medYield : null};
+    }
+  }catch(e){ /* ไม่มีข้อมูลปันผล -> การ์ดแสดงแบบพื้นฐาน */ }
+  return null;
+}
+
+// สัญญาณ Income: yield สูงกว่าปกติ = ราคาถูกเทียบกระแสเงินสดที่จ่ายจริง
+function incomeSignal(inc){
+  if(!inc || inc.ratio==null) return {l:"Income · DCA ตามแผน", c:"var(--sub)", bg:"rgba(138,150,171,.13)"};
+  if(inc.ratio >= 1.10) return {l:"Yield สูงกว่าปกติ · น่าสะสม", c:"var(--green)", bg:"rgba(38,194,129,.15)"};
+  if(inc.ratio >= 0.90) return {l:"Yield ปกติ · DCA ตามแผน", c:"var(--teal)", bg:"rgba(45,212,191,.13)"};
+  return {l:"Yield ต่ำกว่าปกติ · ไม่ต้องรีบ", c:"var(--yellow)", bg:"rgba(240,192,64,.13)"};
+}
+
+/* ---------- Indicators ---------- */
+// Wilder's RSI (smoothed over full history) — มาตรฐานเดียวกับแพลตฟอร์มเทรดทั่วไป
+function rsi(closes, period=14){
+  if(closes.length < period+1) return null;
+  let gain=0, loss=0;
+  for(let i=1; i<=period; i++){
+    const d = closes[i]-closes[i-1];
+    if(d>=0) gain+=d; else loss-=d;
+  }
+  let ag=gain/period, al=loss/period;
+  for(let i=period+1; i<closes.length; i++){
+    const d = closes[i]-closes[i-1];
+    ag = (ag*(period-1) + Math.max(d,0))/period;
+    al = (al*(period-1) + Math.max(-d,0))/period;
+  }
+  if(al===0) return 100;
+  return 100 - 100/(1+ag/al);
+}
+function sma(closes, n){
+  if(closes.length<n) return null;
+  let s=0; for(let i=closes.length-n;i<closes.length;i++) s+=closes[i];
+  return s/n;
+}
+
+/* ---------- Buffett opportunity score (0-100) ---------- */
+// น้ำหนัก: Valuation เป็นแกน (มูลค่าจริงเทียบประวัติ) — ตัวจับจังหวะราคาเป็นตัวรอง
+// เดิมมี 52w+RSI+MA200 = 65% แต่ทั้งสามวัดเรื่องเดียวคือ "ราคาลงมาเยอะแค่ไหน" (สหสัมพันธ์สูง)
+// จึงตัด MA200 ทิ้ง (ซ้ำกับส่วนลด 52w มากสุด) เพื่อไม่ให้ "ราคาลง" ถูกนับซ้ำจนท่วม valuation
+const clamp01 = v => Math.max(0, Math.min(100, v));
+function buffettScore({price, hi52, rsiv, val}){
+  // แต่ละองค์ประกอบมีน้ำหนักของตัวเอง — ถ้าไม่มีข้อมูล จะตัดออกแล้ว renormalize
+  const parts = [];
+  // 1) Valuation (50%): trailing P/E เทียบมัธยฐาน P/E ในอดีตของตัวเอง — ratio 0.7 ->100, 1.3 ->0
+  if(okVal(val)) parts.push({s: clamp01((1.3-val.ratio)/0.6*100), w:50});
+  // 2) ส่วนลดจากจุดสูง 52w (30%): ตลาดกลัว = ลด = ดี. 0% ->0, 35%+ ->100
+  //    guard: ไม่มี hi52 = ไม่นับ (อย่าหักคะแนนเพราะข้อมูลหาย) — จะเจอกับหุ้นไทย/IPO ใหม่
+  if(hi52){
+    const disc = Math.max(0,(hi52-price)/hi52*100);
+    parts.push({s: Math.min(100, disc/35*100), w:30});
+  }
+  // 3) RSI (20%): 30->100(oversold), 70->0(overbought)
+  if(rsiv!=null) parts.push({s: clamp01((70-rsiv)/40*100), w:20});
+  const tw = parts.reduce((s,p)=>s+p.w,0);
+  return tw ? Math.round(parts.reduce((s,p)=>s+p.s*p.w,0)/tw) : 50;
+}
+
+/* โหมดของการ์ด (IPS: ไม่มีข้อมูลพอ/ไม่จับจังหวะ -> DCA · หุ้นทั่วไป -> จังหวะแบบ Buffett)
+   สำคัญ: คะแนนจังหวะจะสูงอัตโนมัติเมื่อราคาร่วงแรง ถ้าไม่มี P/E มาถ่วง มันคือ falling knife
+   ไม่ใช่ของถูก — จึงต้องไม่ให้คะแนนเลย ดีกว่าให้คะแนนที่ชี้ผิดทาง */
+function cardMode(it, val){
+  if(it.status==="INC")  return {m:"dca", why:"สินทรัพย์ปันผล — วัดที่ yield ไม่ใช่จังหวะราคา"};
+  if(it.status==="MOON") return {m:"dca", why:"Moonshot — ราคาร่วงแรงทำให้คะแนนจังหวะสูงหลอก (falling knife) · คุมเพดาน 5%"};
+  if(!okVal(val))        return {m:"dca", why:(val && val.reason) || "ข้อมูลมูลค่าไม่พอ"};
+  return {m:"timing", why:""};
+}
+const dcaSignal = () => ({l:"DCA ตามแผน", c:"var(--blue)", bg:"rgba(79,140,255,.15)"});
+
+function signal(score){
+  if(score>=70) return {l:"โอกาสซื้อ STRONG",c:"var(--green)",bg:"rgba(38,194,129,.15)"};
+  if(score>=55) return {l:"ทยอยสะสม",c:"var(--teal)",bg:"rgba(45,212,191,.15)"};
+  if(score>=40) return {l:"ถือ / รอจังหวะ",c:"var(--yellow)",bg:"rgba(240,192,64,.13)"};
+  if(score>=25) return {l:"แพง · รอย่อ",c:"var(--orange)",bg:"rgba(245,158,66,.13)"};
+  return {l:"แพงมาก · WAIT",c:"var(--red)",bg:"rgba(239,83,101,.13)"};
+}
+
+/* ---------- Render ---------- */
+function skeletonCard(it){
+  const st=STATUS_LABEL[it.status];
+  return `<div class="card" id="card-${it.t}">
+    <div class="accent" style="background:${st.c}"></div>
+    <div class="row1">
+      <div><div class="tk">${it.t}</div><div class="nm">${it.n}</div></div>
+      <div><div class="price"><span class="skel"></span></div></div>
+    </div>
+    <div class="loading">⏳ กำลังโหลด…</div>
+  </div>`;
+}
+
+function fmt(n,d=2){ return n==null||isNaN(n) ? "–" : Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+// unix sec -> วันเวลาไทยแบบสั้น
+const fmtDT = t => t ? new Date(t*1000).toLocaleString("th-TH",{day:"numeric",month:"short",year:"2-digit",hour:"2-digit",minute:"2-digit"}) : "–";
+const fmtD  = t => t ? new Date(t*1000).toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"}) : "–";
+
+function renderCard(it, data){
+  const st=STATUS_LABEL[it.status];
+  const el=document.getElementById("card-"+it.t);
+  if(!el) return;
+  if(data.error){
+    el.innerHTML = `<div class="accent" style="background:${st.c}"></div>
+      <div class="row1"><div><div class="tk">${it.t}</div><div class="nm">${it.n}</div></div></div>
+      <div class="err">⚠️ โหลดข้อมูลไม่สำเร็จ (ลองรีเฟรช)</div>`;
+    return null;
+  }
+  const isIncome = it.status==="INC";
+  const isDca = data.mode==="dca";
+  const sig = isIncome ? incomeSignal(data.income) : isDca ? dcaSignal() : signal(data.score);
+  const chgClr = data.chgPct>=0 ? "var(--green)":"var(--red)";
+  const arrow = data.chgPct>=0 ? "▲":"▼";
+  const discTxt = data.hi52 ? "-"+fmt((data.hi52-data.price)/data.hi52*100,1)+"%" : "–";
+  const ma200Txt = data.ma200 ? (data.price>=data.ma200?"+":"")+fmt((data.price-data.ma200)/data.ma200*100,1)+"%" : "–";
+  const ma200Clr = data.ma200 ? (data.price>=data.ma200?"var(--green)":"var(--orange)") : "var(--sub)";
+  // P/E ปัจจุบัน / มัธยฐานในอดีตของตัวเอง — เขียว=ถูกกว่าประวัติ แดง=แพงกว่า
+  const peTxt = okVal(data.val) ? fmt(data.val.curPE,0)+" / "+fmt(data.val.medPE,0) : "–";
+  const peClr = !okVal(data.val) ? "var(--sub)"
+    : data.val.ratio<0.85 ? "var(--green)"
+    : data.val.ratio<=1.1 ? "var(--txt)"
+    : data.val.ratio<=1.25 ? "var(--orange)" : "var(--red)";
+
+  el.innerHTML = `
+    <div class="accent" style="background:${st.c}"></div>
+    <div class="row1">
+      <div>
+        <div class="tk">${it.t}</div>
+        <div class="nm">${it.n}</div>
+      </div>
+      <div>
+        <div class="price">$${fmt(data.price)}</div>
+        <div class="chg" style="color:${chgClr}">${arrow} ${fmt(Math.abs(data.chgPct),2)}%</div>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill" style="color:${st.c};border-color:${st.c}55">${st.l}</span>
+      <span class="badge" style="color:${sig.c};background:${sig.bg}">${sig.l}${data.mode==="timing" ? " · "+data.score : ""}</span>
+    </div>
+    ${isIncome ? `
+    <div class="metrics">
+      <div class="met"><div class="k">Yield ปันผล/ปี</div><div class="v" style="color:var(--green)">${data.income?fmt(data.income.curYield,2)+"%":"–"}</div></div>
+      <div class="met"><div class="k">อัตราโต 3ปี</div><div class="v" style="color:${data.income&&data.income.growth!=null?(data.income.growth>=0?'var(--green)':'var(--red)'):'var(--sub)'}">${data.income&&data.income.growth!=null?(data.income.growth>=0?"+":"")+fmt(data.income.growth,1)+"%":"–"}</div></div>
+      <div class="met"><div class="k">Yield ปกติ</div><div class="v">${data.income&&data.income.medYield?fmt(data.income.medYield,2)+"%":"–"}</div></div>
+      <div class="met"><div class="k">จ่าย/หุ้น/ปี</div><div class="v">${data.income?"$"+fmt(data.income.ttmDiv,2):"–"}</div></div>
+    </div>` : `
+    <div class="metrics">
+      <div class="met"><div class="k">P/E vs อดีต</div><div class="v" style="color:${peClr}">${peTxt}</div></div>
+      <div class="met"><div class="k">จาก High 52w</div><div class="v" style="color:var(--orange)">${discTxt}</div></div>
+      <div class="met"><div class="k">RSI(14)</div><div class="v" style="color:${data.rsi!=null&&data.rsi<35?'var(--green)':data.rsi>70?'var(--red)':'var(--txt)'}">${data.rsi!=null?fmt(data.rsi,0):'–'}</div></div>
+      <div class="met"><div class="k">vs MA${data.maN||200}</div><div class="v" style="color:${ma200Clr}">${ma200Txt}</div></div>
+    </div>`}
+    ${isDca && !isIncome ? `<div style="margin-top:8px;font-size:10.5px;color:var(--blue);line-height:1.5;">🔵 ไม่ให้คะแนนจังหวะ · ${data.modeWhy}</div>` : ""}
+    <div style="margin-top:8px;font-size:9.5px;color:var(--mut);">📅 ราคา ณ ${fmtDT(data.marketTime)} · ย้อนหลังจาก ${fmtD(data.histStart)} (${data.bars||0} วันทำการ)</div>`;
+  // คืนคะแนนเฉพาะโหมด timing — ตัวที่เป็น DCA ต้องไม่ไปถ่วง gauge
+  return data.mode==="timing" ? data.score : null;
+}
+
+async function loadOne(it){
+  try{
+    const res = await fetchYahoo(it.t);
+    const meta = res.meta||{};
+    // จับคู่ timestamp กับ close แล้วกรอง null พร้อมกัน -> index ตรงกันเสมอ
+    // (เดิมกรอง close อย่างเดียว ทำให้ ts[last] กับ closes[last] คนละวันเมื่อแท่งสุดท้าย close=null
+    //  แล้ว % รายวันเพี้ยนไป 1 วัน — จะเจอกับหุ้นไทย/วันหยุด/หุ้นพักการซื้อขาย)
+    const rawTs = res.timestamp || [];
+    const rawCl = res.indicators?.quote?.[0]?.close || [];
+    const ts=[], closes=[];
+    for(let i=0;i<rawTs.length;i++){ if(rawTs[i]!=null && rawCl[i]!=null){ ts.push(rawTs[i]); closes.push(rawCl[i]); } }
+    const price = meta.regularMarketPrice ?? closes[closes.length-1];
+
+    // % รายวันจริง: เทียบกับ "ราคาปิดวันทำการก่อนหน้า" จากซีรีส์แท่งรายวัน
+    // (ห้ามใช้ meta.chartPreviousClose — สำหรับ range=1y มันคือราคาปิดเมื่อ 1 ปีก่อน)
+    let prevClose = null;
+    if(closes.length >= 2){
+      const lastBarTs = ts[ts.length-1] || 0;
+      const mktTs = meta.regularMarketTime || lastBarTs;
+      // แท่งสุดท้ายคือ session เดียวกับราคาล่าสุด -> ปิดก่อนหน้า = แท่งรองสุดท้าย
+      prevClose = (mktTs - lastBarTs) < 24*3600 ? closes[closes.length-2] : closes[closes.length-1];
+    }
+
+    const hi52 = meta.fiftyTwoWeekHigh ?? Math.max(...closes);
+    const rsiv = rsi(closes);
+    let maN = 200, ma200 = sma(closes,200);
+    if(ma200==null){ maN = Math.min(closes.length,150); ma200 = sma(closes,maN); }
+    const chgPct = prevClose ? (price-prevClose)/prevClose*100 : 0;
+    // Income (SCHD/JEPQ): วัดด้วย yield + การเติบโตปันผล ไม่ใช้ Buffett score
+    // Moonshot: ข้ามการดึงงบไปเลย (ขาดทุนอยู่แล้ว) แล้วบังคับเป็น DCA
+    let val=null, income=null, score=null;
+    if(it.status==="INC")        income = await getIncomeStats(it.t, price);
+    else if(it.status!=="MOON")  val = await getValuation(it.t, price);
+
+    const mode = cardMode(it, val);
+    if(mode.m==="timing") score = buffettScore({price, hi52, rsiv, ma200, val});
+
+    return {
+      price, chgPct, hi52, rsi:rsiv, ma200, maN, val, income, score, error:false,
+      mode: mode.m, modeWhy: mode.why,
+      marketTime: meta.regularMarketTime || null,   // เวลาราคาล่าสุดจากตลาด (unix sec)
+      histStart: ts[0] || null,                     // ข้อมูลย้อนหลังเริ่มเมื่อไร
+      bars: closes.length,                          // จำนวนวันทำการ
+    };
+  }catch(e){
+    return {error:true};
+  }
+}
+
+/* ---------- Market status (US equities) ---------- */
+// ตลาดหุ้นสหรัฐ regular session = จ.-ศ. 9:30–16:00 เวลา New York
+// หมายเหตุ: ไม่รู้จักวันหยุดพิเศษของตลาด (เช่น Thanksgiving) — วันนั้นจะคิดว่า "เปิด"
+// แล้วยิง 1 ครั้ง ซึ่งไม่เสียหาย (Yahoo คืนราคาปิดล่าสุด + เวลา "ข้อมูล ณ" ยังถูกต้อง)
+function isMarketOpen(d=new Date()){
+  try{
+    const p=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(d);
+    const g=t=>p.find(x=>x.type===t)?.value;
+    const wd=g("weekday");
+    if(wd==="Sat"||wd==="Sun") return false;
+    const mins=((+g("hour"))%24)*60 + (+g("minute"));
+    return mins>=570 && mins<960; // 9:30–16:00 ET
+  }catch(e){ return true; } // เดตประหลาด -> ถือว่าเปิดไว้ก่อน (ยอมยิง ดีกว่าจอค้าง)
+}
+const marketStatusLabel = () => isMarketOpen() ? {emoji:"🟢",word:"เปิดอยู่"} : {emoji:"🔴",word:"ปิด"};
+
+/* ---------- Shared render pieces (ใช้ทั้งโหลดสด และแสดงจาก snapshot) ---------- */
+function buildSkeleton(){
+  // ครอบแต่ละกลุ่มด้วย data-group เพื่อให้ปุ่ม allocation กรองได้
+  document.getElementById("content").innerHTML = GROUPS.map((g,gi)=>`
+    <div data-group="${gi}">
+      <div class="section-title"><span class="dot" style="background:${g.color}"></span>${g.title} · <span style="color:${g.color}">${g.target}</span></div>
+      ${g.items.map(skeletonCard).join("")}
+    </div>
+  `).join("");
+  applyFilter();
+}
+// gauge = ค่าเฉลี่ยคะแนนจังหวะของ "หุ้น watchlist เราเอง" (เฉพาะโหมด timing) ไม่ใช่ดัชนีตลาดจริง
+function paintGauge(avg, n){
+  document.getElementById("gaugeVal").textContent=avg;
+  document.getElementById("pin").style.left=avg+"%";
+  let mood,clr;
+  if(avg>=70){mood="หุ้นเราถูกเทียบประวัติ 🟢 จังหวะสะสม";clr="var(--green)";}
+  else if(avg>=55){mood="เริ่มน่าสะสม 🟢";clr="var(--teal)";}
+  else if(avg>=40){mood="กลางๆ · เลือกเป็นตัว 🟡";clr="var(--yellow)";}
+  else if(avg>=25){mood="หุ้นเราแพงเทียบประวัติ 🟠 รอย่อ";clr="var(--orange)";}
+  else{mood="แพงมาก 🔴 อดทน DCA";clr="var(--red)";}
+  const mt=document.getElementById("moodTxt"); mt.textContent=mood+" · จาก "+n+" ตัวที่ประเมินมูลค่าได้"; mt.style.color=clr;
+  document.getElementById("gaugeVal").style.color=clr;
+  window.__gauge=avg; window.__mood=mood;
+}
+function paintDataRange(marketTime, oldest, maxBars){
+  const st=marketStatusLabel();
+  document.getElementById("dataRange").textContent =
+    "📊 ข้อมูล ณ "+fmtDT(marketTime)+" · "+st.emoji+" ตลาดสหรัฐ"+st.word
+    + (oldest?(" · ย้อนหลังตั้งแต่ "+fmtD(oldest)+" (≈"+maxBars+" วัน)"):"");
+}
+
+/* ---------- Snapshot: เก็บผลล่าสุดไว้แสดงตอนเปิดแอปโดยไม่ต้องยิงใหม่ ---------- */
+const SNAP_KEY="snap1";
+function saveSnapshot(cards, marketTime, oldest, maxBars, gauge, gaugeN){
+  try{ localStorage.setItem(SNAP_KEY, JSON.stringify({savedAt:Date.now(), marketTime, oldest, maxBars, gauge, gaugeN, cards})); }catch(_){}
+}
+function loadSnapshot(){
+  try{ return JSON.parse(localStorage.getItem(SNAP_KEY)||"null"); }catch(_){ return null; }
+}
+function renderSnapshot(snap){
+  window.__cardData = snap.cards || {};
+  buildSkeleton();
+  GROUPS.forEach(g=>g.items.forEach(it=>renderCard(it, snap.cards[it.t] || {error:true})));
+  if(snap.gauge!=null) paintGauge(snap.gauge, snap.gaugeN||0);
+  if(snap.marketTime) paintDataRange(snap.marketTime, snap.oldest, snap.maxBars);
+  document.getElementById("updated").textContent =
+    "🕒 แสดงข้อมูลที่บันทึกไว้ · บันทึกเมื่อ "+new Date(snap.savedAt).toLocaleString("th-TH")+" · แตะรีเฟรชเพื่อดึงใหม่";
+  if(!window.__kirinInit){ window.__kirinInit=true; showCachedKirin(); }
+  updateNet();
+}
+
+let busy=false;
+async function loadAll(){
+  if(busy) return; busy=true;
+  window.__fromCache=false;
+  document.getElementById("refIcon").classList.add("spin");
+
+  buildSkeleton();
+
+  // fetch all in parallel
+  const flat=[];
+  GROUPS.forEach(g=>g.items.forEach(it=>flat.push(it)));
+  const results = await Promise.all(flat.map(loadOne));
+
+  // render + collect scores for gauge — renderCard คืนคะแนนเฉพาะการ์ดโหมด timing เท่านั้น
+  // (Income, Moonshot และตัวที่ข้อมูลมูลค่าไม่พอ = DCA ไม่มีคะแนน จึงไม่เข้า gauge โดยอัตโนมัติ)
+  let gaugeScores=[]; const cards={};
+  flat.forEach((it,i)=>{
+    if(!results[i].error){ window.__cardData[it.t]=results[i]; cards[it.t]=results[i]; } // ให้ chart modal + snapshot ใช้
+    const s=renderCard(it,results[i]);
+    if(s!=null) gaugeScores.push(s);
+  });
+
+  // สรุปเวลาข้อมูลรวม: ราคาล่าสุดจากตลาด + จุดเริ่มข้อมูลย้อนหลังที่เก่าสุด
+  const oks = results.filter(r=>!r.error && r.marketTime);
+  let newest=null, oldest=null, maxBars=0;
+  if(oks.length){
+    newest = Math.max(...oks.map(r=>r.marketTime));
+    oldest = Math.min(...oks.filter(r=>r.histStart).map(r=>r.histStart));
+    maxBars = Math.max(...oks.map(r=>r.bars||0));
+    paintDataRange(newest, oldest, maxBars);
+  }
+
+  let gauge=null, gaugeN=0;
+  if(gaugeScores.length){
+    gauge=Math.round(gaugeScores.reduce((a,b)=>a+b,0)/gaugeScores.length);
+    gaugeN=gaugeScores.length;
+    paintGauge(gauge, gaugeN);
+  }
+
+  // บันทึก snapshot เฉพาะเมื่อได้ข้อมูลจริง (อย่าทับของดีด้วยผลที่ error ทั้งหมด)
+  if(oks.length && !window.__fromCache) saveSnapshot(cards, newest, oldest, maxBars, gauge, gaugeN);
+
+  // แสดงผลวิเคราะห์ที่ "บันทึกไว้วันนี้" เท่านั้น — ไม่ยิง AI อัตโนมัติ (ต้องกดปุ่มเอง)
+  if(!window.__kirinInit){ window.__kirinInit=true; showCachedKirin(); }
+
+  const now=new Date();
+  const tag = window.__fromCache ? " · 📡 ข้อมูลล่าสุด (ออฟไลน์)" : "";
+  document.getElementById("updated").textContent="โหลดข้อมูลเมื่อ "+now.toLocaleString("th-TH")+tag;
+  updateNet();
+  document.getElementById("refIcon").classList.remove("spin");
+  busy=false;
+}
+
+/* ---------- Kirin: วิเคราะห์สถานการณ์พอร์ตด้วย AI ---------- */
+function buildSnapshot(){
+  const flat=[]; GROUPS.forEach(g=>g.items.forEach(it=>flat.push(it)));
+  const holdings=[];
+  flat.forEach(it=>{
+    const d=window.__cardData[it.t]; if(!d) return;
+    const h={t:it.t, status:it.status, price:+fmt(d.price), chgPct:+fmt(d.chgPct,2)};
+    if(it.status==="INC"){
+      if(d.income){ h.yield=+fmt(d.income.curYield,2); if(d.income.medYield) h.medYield=+fmt(d.income.medYield,2); }
+    }else if(d.mode==="timing"){
+      h.score=d.score; h.signal=signal(d.score).l;
+      if(d.hi52) h.disc=+fmt((d.hi52-d.price)/d.hi52*100,1);
+      if(okVal(d.val)){ h.pe=+fmt(d.val.curPE,0); h.medPE=+fmt(d.val.medPE,0); }
+    }else{
+      // ไม่ส่งคะแนน -> worker จะไม่เอาไปใส่ allowList "หุ้นน่าสะสม" โดยอัตโนมัติ
+      if(d.hi52) h.disc=+fmt((d.hi52-d.price)/d.hi52*100,1);
+    }
+    holdings.push(h);
+  });
+  return {time:new Date().toLocaleString("th-TH"), gauge:window.__gauge??null, mood:window.__mood||"", holdings};
+}
+
+function renderKirin(text, ts, cached, guardrail){
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  // mini-markdown: รองรับทั้ง Llama (* + bullets) และ SEA-LION (## headers, ** bold)
+  const html=esc(text)
+    .replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")        // **bold**
+    .replace(/^\s*#{1,6}\s*(.+)$/gm,"<b>$1</b>")  // ## headers -> bold
+    .replace(/^(\s*)[\*\-\+]\s+/gm,"$1• ");        // *,-,+ bullets -> •
+  const warn = guardrail==="flagged"
+    ? '<div style="margin-top:10px;font-size:11px;color:var(--orange);">⚠️ AI อาจเอ่ยถึงหุ้นเก็งกำไร (Moonshot) ในเชิงสะสม — โปรดใช้วิจารณญาณ ยึดเพดาน 5%</div>' : '';
+  document.getElementById("kirinBody").innerHTML='<div class="kirin-text">'+html+'</div>'+warn;
+  document.getElementById("kirinMeta").textContent=(cached?"🕒 บันทึกไว้ ":"✨ วิเคราะห์เมื่อ ")+new Date(ts).toLocaleString("th-TH");
+}
+
+// โควตาการเรียก AI ต่อวัน (ฝั่ง client) — คุมต้นทุน/วินัยการใช้
+const KIRIN_DAILY_LIMIT = 3;
+function kirinQuota(){
+  const day=new Date().toISOString().slice(0,10);
+  const KEY="kirinCalls:"+day;
+  let used=0; try{ used=parseInt(localStorage.getItem(KEY)||"0",10)||0; }catch(_){}
+  used=Math.min(used, KIRIN_DAILY_LIMIT);
+  return {day, KEY, used, limit:KIRIN_DAILY_LIMIT, remaining:Math.max(0, KIRIN_DAILY_LIMIT-used)};
+}
+function renderKirinQuota(){
+  const q=kirinQuota();
+  let dots=""; for(let i=0;i<q.limit;i++) dots+=`<span class="d${i<q.used?" used":""}"></span>`;
+  const remTxt = q.remaining>0
+    ? `<span class="rem">เหลือ ${q.remaining}/${q.limit}</span> ครั้งวันนี้`
+    : `<span class="rem empty">ครบโควตาวันนี้</span> · รีเซ็ตพรุ่งนี้`;
+  const el=document.getElementById("kirinQuota");
+  if(el) el.innerHTML=`<span>โควตา AI</span><span class="meter">${dots}</span>${remTxt}`;
+  const btn=document.getElementById("kirinBtn");
+  if(btn && !kirinBusy){
+    btn.disabled = q.remaining<=0;
+    btn.textContent = q.remaining>0 ? "🔮 วิเคราะห์" : "ครบโควตาแล้ว";
+  }
+}
+
+// แสดงผลที่บันทึกไว้วันนี้ (ถ้ามี) โดยไม่เรียก AI — ใช้ตอนโหลดหน้า
+function showCachedKirin(){
+  const today=new Date().toISOString().slice(0,10);
+  try{ const c=JSON.parse(localStorage.getItem("kirin:"+today)||"null"); if(c&&c.analysis){ renderKirin(c.analysis,c.ts,true,c.guardrail); } }catch(_){}
+  renderKirinQuota();
+}
+
+let kirinBusy=false;
+async function runKirin(){
+  const box=document.getElementById("kirinBody");
+  const btn=document.getElementById("kirinBtn");
+  const today=new Date().toISOString().slice(0,10);
+  const KEY="kirin:"+today;
+  if(kirinBusy) return;
+  // ตรวจโควตารายวันก่อนเรียก AI
+  const q=kirinQuota();
+  if(q.remaining<=0){
+    box.innerHTML='<div class="err" style="margin-top:12px;">ใช้ครบ '+q.limit+' ครั้งแล้ววันนี้ 🌙 โควตารีเซ็ตพรุ่งนี้ · ผลวิเคราะห์ล่าสุดยังดูได้ด้านล่าง</div>';
+    renderKirinQuota(); return;
+  }
+  const snap=buildSnapshot();
+  if(!snap.holdings.length){ box.innerHTML='<div class="loading" style="margin-top:12px;">รอข้อมูลหุ้นโหลดก่อน แล้วลองใหม่</div>'; return; }
+  kirinBusy=true; btn.disabled=true;
+  box.innerHTML='<div class="loading dots" style="margin-top:12px;">🐉 Kirin กำลังอ่านพอร์ตและวิเคราะห์</div>';
+  const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),30000);
+  try{
+    // x-kirin-client: หน้าเราใส่ให้ทุกครั้ง — worker ใช้กัน curl/บอทที่ไม่รู้จัก header นี้
+    // (same-origin + custom header ไม่ trigger preflight; ข้ามโดเมนจะโดน CORS บล็อกเพราะ OPTIONS ไม่อนุญาต header นี้)
+    const res=await fetch("./api/kirin",{method:"POST",headers:{"content-type":"application/json","x-kirin-client":"1"},body:JSON.stringify(snap),signal:ctrl.signal});
+    const j=await res.json().catch(()=>null);
+    if(j&&j.analysis){
+      const ts=Date.now();
+      try{ localStorage.setItem(KEY,JSON.stringify({ts,gauge:snap.gauge,analysis:j.analysis,guardrail:j.guardrail})); }catch(_){}
+      try{ localStorage.setItem(q.KEY, String(q.used+1)); }catch(_){}  // นับเฉพาะครั้งที่สำเร็จ
+      renderKirin(j.analysis,ts,false,j.guardrail);
+    }else if(res.status===429){
+      box.innerHTML='<div class="err" style="margin-top:12px;">เรียกถี่เกินไป — รอสักครู่แล้วลองใหม่ (ไม่นับโควตา)</div>';
+    }else{
+      box.innerHTML='<div class="err" style="margin-top:12px;">Kirin วิเคราะห์ไม่สำเร็จ'+(j&&j.error?" ("+j.error+")":"")+' — ลองใหม่ (ไม่นับโควตา)</div>';
+    }
+  }catch(e){
+    box.innerHTML='<div class="err" style="margin-top:12px;">เชื่อมต่อ Kirin ไม่ได้ — ลองใหม่ (ไม่นับโควตา)</div>';
+  }finally{ clearTimeout(to); kirinBusy=false; renderKirinQuota(); }
+}
+
+/* ---------- Chart modal: กดการ์ดหุ้น -> ดูกราฟย้อนหลัง ---------- */
+const CM_RANGES = [
+  {l:"7D", r:"5d",  i:"60m"},   // 5 วันทำการ = 1 สัปดาห์
+  {l:"1M", r:"1mo", i:"1d"},
+  {l:"3M", r:"3mo", i:"1d"},
+  {l:"6M", r:"6mo", i:"1d"},
+  {l:"1Y", r:"1y",  i:"1d"},
+  {l:"2Y", r:"2y",  i:"1wk"},
+];
+let cmItem=null, cmIdx=1;           // เปิดที่ 1M เหมือนตัวอย่าง
+const cmCache={};                   // แคชซีรีส์ต่อ ticker:range 60 วิ
+window.__cardData = window.__cardData || {};
+
+function openChart(item){
+  cmItem=item; cmIdx=1;
+  document.getElementById("cmName").textContent = item.n.split("·")[0].trim();
+  document.getElementById("cmTick").textContent = item.t;
+  const d=window.__cardData[item.t];
+  setCmPrice(d?d.price:null, d?d.chgPct:null);
+  document.getElementById("chartModal").style.display="block";
+  document.body.style.overflow="hidden";
+  renderCmRanges();
+  loadChart();
+}
+function closeChart(){
+  document.getElementById("chartModal").style.display="none";
+  document.body.style.overflow="";
+}
+function setCmPrice(price,chg){
+  document.getElementById("cmPrice").textContent = price!=null ? fmt(price)+" USD" : "–";
+  const el=document.getElementById("cmChg");
+  if(chg!=null){
+    el.textContent=(chg>=0?"+":"")+fmt(chg,2)+"%";
+    el.style.color = chg>=0 ? "var(--green)" : "var(--red)";
+  }else el.textContent="";
+}
+function renderCmRanges(){
+  const bar=document.getElementById("cmRanges");
+  bar.innerHTML = CM_RANGES.map((x,i)=>`<button class="${i===cmIdx?'on':''}" data-i="${i}">${x.l}</button>`).join("");
+  bar.querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{ cmIdx=parseInt(b.dataset.i,10); renderCmRanges(); loadChart(); };
+  });
+}
+async function loadChart(){
+  const box=document.getElementById("cmChart");
+  box.innerHTML='<div class="loading" style="padding:40px 0;text-align:center;">⏳ กำลังโหลดกราฟ…</div>';
+  const {r,i}=CM_RANGES[cmIdx];
+  const key=cmItem.t+":"+r;
+  try{
+    let hit=cmCache[key];
+    if(!hit || Date.now()-hit.ts>60000){
+      hit={ts:Date.now(), res:await fetchYahoo(cmItem.t, r, i)};
+      cmCache[key]=hit;
+    }
+    const res=hit.res;
+    const ts=res.timestamp||[], cl=res.indicators?.quote?.[0]?.close||[];
+    const pts=[];
+    for(let k=0;k<ts.length;k++) if(cl[k]!=null) pts.push({t:ts[k], c:cl[k]});
+    if(pts.length<2) throw new Error("no points");
+
+    // header: ราคาสดจาก meta ของรอบนี้
+    const meta=res.meta||{};
+    const dCard=window.__cardData[cmItem.t];
+    setCmPrice(meta.regularMarketPrice ?? pts[pts.length-1].c, dCard?dCard.chgPct:null);
+
+    // สถิติช่วง
+    const closes=pts.map(p=>p.c);
+    const hi=Math.max(...closes), lo=Math.min(...closes), start=pts[0].c, last=closes[closes.length-1];
+    const pchg=(last-start)/start*100;
+    document.getElementById("cmHigh").textContent=fmt(hi)+" USD";
+    document.getElementById("cmLow").textContent=fmt(lo)+" USD";
+    document.getElementById("cmStart").textContent=fmt(start)+" USD";
+    const pc=document.getElementById("cmPchg");
+    pc.textContent=(pchg>=0?"+":"")+fmt(pchg,2)+"%";
+    pc.style.color=pchg>=0?"var(--green)":"var(--red)";
+    document.getElementById("cmD1").textContent=fmtD(pts[0].t);
+    document.getElementById("cmD2").textContent=fmtD(pts[pts.length-1].t);
+    document.getElementById("cmNote").textContent="ราคา ณ "+fmtDT(meta.regularMarketTime)+" · "+pts.length+" จุดข้อมูล · Yahoo Finance";
+
+    box.innerHTML=chartSVG(pts, pchg>=0, hi, lo);
+  }catch(e){
+    box.innerHTML='<div class="err" style="padding:40px 0;text-align:center;">⚠️ โหลดกราฟไม่สำเร็จ (ลองใหม่)</div>';
+  }
+}
+function chartSVG(pts, up, hi, lo){
+  const W=560, H=230, P=8;
+  const span=(hi-lo)||1;
+  const X=k=>P+(W-2*P)*k/(pts.length-1);
+  const Y=c=>P+(H-2*P)*(1-(c-lo)/span);
+  let d="M"+X(0).toFixed(1)+" "+Y(pts[0].c).toFixed(1);
+  for(let k=1;k<pts.length;k++) d+="L"+X(k).toFixed(1)+" "+Y(pts[k].c).toFixed(1);
+  const area=d+`L${X(pts.length-1).toFixed(1)} ${H} L${X(0).toFixed(1)} ${H} Z`;
+  const col=up?"#26c281":"#ef5365";
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="cmGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="${col}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <text x="${P}" y="${P+10}" font-size="11" fill="#5d6a82">${fmt(hi)}</text>
+    <text x="${P}" y="${H-P-4}" font-size="11" fill="#5d6a82">${fmt(lo)}</text>
+    <path d="${area}" fill="url(#cmGrad)"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(pts.length-1).toFixed(1)}" cy="${Y(pts[pts.length-1].c).toFixed(1)}" r="4.5" fill="${col}"/>
+  </svg>`;
+}
+// เปิด modal ด้วย event delegation — อยู่รอดแม้ content ถูก re-render ทุกรีเฟรช
+document.getElementById("content").addEventListener("click", e=>{
+  const card=e.target.closest(".card");
+  if(!card || !card.id || !card.id.startsWith("card-")) return;
+  const t=card.id.slice(5);
+  let item=null;
+  GROUPS.forEach(g=>g.items.forEach(x=>{ if(x.t===t) item=x; }));
+  if(item) openChart(item);
+});
+document.getElementById("chartModal").addEventListener("click", e=>{
+  if(e.target.id==="chartModal") closeChart(); // กดพื้นหลังเพื่อปิด
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeChart(); });
+
+/* ---------- Allocation bar: สร้างจาก GROUPS (แหล่งเดียวกับการ์ด) + กดกรองกลุ่ม ---------- */
+let filterIdx = null; // null = แสดงทั้งหมด, -1 = Cash Opp, 0..n = index ใน GROUPS
+function renderAllocBar(){
+  const chips = GROUPS.map((g,i)=>({label:g.short||g.title, target:g.target, idx:i, color:g.color}));
+  chips.push({label:"Cash Opp", target:"10%", idx:-1, color:"var(--yellow)"}); // เงินสด — ไม่มีการ์ด
+  const bar = document.getElementById("allocBar");
+  bar.innerHTML = chips.map(c=>`
+    <button class="a${filterIdx===c.idx?" active":""}" data-idx="${c.idx}"
+      style="border-color:${filterIdx===c.idx?c.color:"var(--line)"}">
+      <div class="k">${c.label}</div>
+      <div class="v" style="color:${filterIdx===c.idx?c.color:"var(--txt)"}">${c.target}</div>
+    </button>`).join("");
+  bar.querySelectorAll("button").forEach(b=>{
+    b.onclick = ()=>{
+      const i = parseInt(b.dataset.idx,10);
+      filterIdx = (filterIdx===i) ? null : i; // กดซ้ำ = ยกเลิกกรอง
+      renderAllocBar();
+      applyFilter();
+    };
+  });
+}
+function applyFilter(){
+  document.querySelectorAll("#content [data-group]").forEach(el=>{
+    const i = parseInt(el.dataset.group,10);
+    el.style.display = (filterIdx===null || filterIdx===i) ? "" : "none";
+  });
+  document.getElementById("cashNote").style.display = (filterIdx===-1) ? "" : "none";
+}
+renderAllocBar();
+
+/* rotate quote */
+let qi=0;
+function rotQuote(){
+  document.getElementById("quote").textContent="“"+QUOTES[qi%QUOTES.length]+"”";
+  qi++;
+}
+rotQuote(); setInterval(rotQuote,7000);
+
+/* ---------- Offline indicator ---------- */
+function updateNet(){
+  const off = !navigator.onLine || window.__fromCache;
+  document.getElementById("offlineBar").style.display = off ? "block" : "none";
+}
+// กลับมาออนไลน์: อัปเดตแค่ตัวชี้สถานะ ไม่ยิงข้อมูลเอง (ผู้ใช้กดรีเฟรชเมื่อต้องการ)
+window.addEventListener("online", () => { window.__fromCache=false; updateNet(); });
+window.addEventListener("offline", updateNet);
+
+/* ---------- Service Worker (offline mode) ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+
+/* ---------- Boot ---------- */
+// ไม่มี auto-refresh อีกต่อไป — ดึงข้อมูลเมื่อ (ก) เปิดแอปตอนตลาดเปิด หรือ (ข) กดปุ่มรีเฟรช
+// เปิดแอปตอนตลาดปิด: แสดงผลล่าสุดที่บันทึกไว้ทันที โดยไม่ยิงเครือข่ายเลย
+(function boot(){
+  const snap=loadSnapshot();
+  if(snap) renderSnapshot(snap);           // แสดงของเก่าก่อนเสมอ (ถ้ามี) = เปิดมาเห็นเลย
+  if(isMarketOpen() || !snap) loadAll();    // ยิงสดเฉพาะตอนตลาดเปิด หรือยังไม่เคยมีข้อมูล
+})();
+</script>
+</body>
+</html>

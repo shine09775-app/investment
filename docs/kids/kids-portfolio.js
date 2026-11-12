@@ -1,6 +1,6 @@
 /* ============================================================================
  * kids-portfolio.js — Kids Portfolio engine
- * ส่วนขยายของ mega-trend-portfolio (portfolio.html)
+ * ส่วนขยายของ mega-trend-portfolio (src/index.html)
  *
  * แอปเดิมมี buffettScore() ที่วัด "จังหวะราคา" (52w high, RSI, MA200, P/E)
  * ไฟล์นี้เติมอีกครึ่งที่ขาดไป: "คุณภาพธุรกิจ" + โครงพอร์ต + กติกา rebalance
@@ -54,7 +54,7 @@ const FEAR_TRIGGER = 70;
 /**
  * โครงถัง — items เว้นว่างไว้ตั้งใจ
  * ผู้ปกครองเป็นคนใส่เอง (หรือใส่ร่วมกับผู้แนะนำการลงทุนที่มีใบอนุญาต)
- * รูปแบบ item เหมือน GROUPS ใน portfolio.html เป๊ะ ๆ เพื่อ reuse การ์ดเดิมได้เลย
+ * รูปแบบ item เหมือน GROUPS ใน src/index.html เป๊ะ ๆ เพื่อ reuse การ์ดเดิมได้เลย
  *   { t:"TICKER", n:"ชื่อ · ธีม", status:"OWN|BUY1|WATCH|INC", ccy:"USD|THB", kid:"arthy|indy|both" }
  * หุ้นไทยใช้ suffix .BK ตาม Yahoo Finance เช่น "PTT.BK"
  */
@@ -236,7 +236,7 @@ const QUALITY_OK   = 45;
 
 /**
  * @param {number} quality  0–100 จาก qualityScore()
- * @param {number} timing   0–100 จาก buffettScore() ที่มีอยู่แล้วใน portfolio.html
+ * @param {number} timing   0–100 จาก buffettScore() ที่มีอยู่แล้วใน src/index.html
  * @param {boolean} gatesPassed
  */
 function verdict(quality, timing, gatesPassed) {
@@ -338,7 +338,7 @@ const KID_SCHEMA = {
  * ------------------------------------------------------------------------- */
 
 /**
- * ใช้ proxy /api/chart เดิมใน deploy/_worker.js ได้เลย ไม่ต้องแก้อะไร
+ * ใช้ proxy /api/chart เดิมใน src/_worker.js ได้เลย ไม่ต้องแก้อะไร
  *   หุ้นไทย    : "PTT.BK", "CPALL.BK"      (Yahoo ใช้ suffix .BK สำหรับ SET)
  *   อัตราแลกฯ  : "THB=X"                   (USD→THB)
  *   ดัชนี SET  : "^SET.BK"

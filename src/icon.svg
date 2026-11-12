@@ -1,0 +1,49 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1b30"/>
+      <stop offset="1" stop-color="#070a12"/>
+    </linearGradient>
+    <linearGradient id="candle" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1f9d6b"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#6ee7a8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- candlesticks rising -->
+  <g stroke-linecap="round">
+    <!-- c1 -->
+    <line x1="130" y1="300" x2="130" y2="402" stroke="#1f9d6b" stroke-width="8"/>
+    <rect x="108" y="324" width="44" height="64" rx="9" fill="url(#candle)"/>
+    <!-- c2 -->
+    <line x1="220" y1="252" x2="220" y2="372" stroke="#23b487" stroke-width="8"/>
+    <rect x="198" y="272" width="44" height="78" rx="9" fill="url(#candle)"/>
+    <!-- c3 -->
+    <line x1="310" y1="196" x2="310" y2="332" stroke="#27c79a" stroke-width="8"/>
+    <rect x="288" y="214" width="44" height="96" rx="9" fill="url(#candle)"/>
+    <!-- c4 -->
+    <line x1="400" y1="132" x2="400" y2="292" stroke="#2dd4bf" stroke-width="8"/>
+    <rect x="378" y="150" width="44" height="118" rx="9" fill="url(#candle)"/>
+  </g>
+
+  <!-- trend arrow -->
+  <g filter="url(#soft)" opacity="0.55">
+    <path d="M104 360 L196 312 L286 250 L408 158" stroke="url(#arrow)" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M104 360 L196 312 L286 250 L408 158" stroke="url(#arrow)" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M360 150 L424 142 L416 206 Z" fill="#6ee7a8"/>
+</svg>

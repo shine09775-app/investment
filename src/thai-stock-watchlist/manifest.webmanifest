@@ -1,0 +1,15 @@
+{
+  "name": "หุ้นไทย Watchlist",
+  "short_name": "หุ้นไทย",
+  "description": "พื้นที่ศึกษาหุ้นไทยระยะยาว บันทึกเหตุผล ความเสี่ยง และสมมติฐานอย่างเป็นระบบ",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffdf9",
+  "theme_color": "#171f55",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

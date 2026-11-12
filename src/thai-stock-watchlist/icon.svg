@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="หุ้นไทย Watchlist">
+  <rect width="512" height="512" rx="108" fill="#171f55"/>
+  <path fill="#ba263c" d="M0 0h512v88H0zM0 424h512v88H0z"/>
+  <path fill="#fffdf9" d="M0 88h512v68H0zM0 356h512v68H0z"/>
+  <path d="M111 331V184h43v111h49v36H111zm113 0V151h43v144h48v36h-91zm112 0V112h43v183h48v36h-91z" fill="#fffdf9"/>
+  <path d="m104 228 94-71 65 42 123-104" fill="none" stroke="#ffcb62" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/>
+  <path d="m361 97 28-3-7 27" fill="none" stroke="#ffcb62" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/>
+</svg>

@@ -2,9 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Local (Node, no Cloudflare login)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/dev-server.mjs"
+      ],
+      "port": 8790
+    },
+    {
       "name": "Cloudflare Pages Dev (deploy/ + _worker.js API)",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "pages", "dev", "--port", "8788"],
+      "runtimeArgs": [
+        "wrangler",
+        "pages",
+        "dev",
+        "--port",
+        "8788"
+      ],
       "port": 8788
     }
   ]

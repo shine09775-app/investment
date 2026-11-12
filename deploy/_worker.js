@@ -10,6 +10,9 @@ export default {
     if (url.pathname === "/api/eps") {
       return handleEps(request, url);
     }
+    if (url.pathname === "/api/fundamentals") {
+      return handleFundamentals(request, url);
+    }
     if (url.pathname === "/api/kirin") {
       return handleKirin(request, env);
     }
@@ -93,7 +96,53 @@ async function handleEps(request, url) {
   return json({ error: "upstream unavailable" }, 502, cors);
 }
 
-// Kirin — วิเคราะห์สถานการณ์พอร์ตด้วย Workers AI (Llama 3.3 70B) ตามหลัก IPS
+// ตัวเลขพื้นฐานที่ Thai Stock Watchlist ใช้ (P/E, EPS, Operating income,
+// สินทรัพย์, หนี้ และ equity) — Yahoo timeseries ใช้โดยไม่ต้องมี crumb.
+async function handleFundamentals(request, url) {
+  const cors = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET, OPTIONS",
+    "access-control-allow-headers": "*",
+  };
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+
+  const symbol = (url.searchParams.get("symbol") || "").toUpperCase().replace(/[^A-Z0-9.\-=^]/g, "");
+  if (!symbol) return json({ error: "missing symbol" }, 400, cors);
+  const p2 = Math.floor(Date.now() / 1000);
+  const p1 = p2 - 8 * 365 * 86400;
+  const types = [
+    "trailingPeRatio", "trailingEps", "trailingMarketCap",
+    "quarterlyDilutedEPS", "annualDilutedEPS",
+    "quarterlyOperatingIncome", "annualOperatingIncome",
+    "quarterlyTotalAssets", "annualTotalAssets",
+    "quarterlyTotalDebt", "annualTotalDebt",
+    "quarterlyStockholdersEquity", "annualStockholdersEquity",
+  ].join(",");
+
+  for (const h of ["query1", "query2"]) {
+    const target = `https://${h}.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${symbol}?type=${types}&period1=${p1}&period2=${p2}`;
+    try {
+      const r = await fetch(target, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          "Accept": "application/json,text/plain,*/*",
+        },
+        cf: { cacheTtl: 21600, cacheEverything: true },
+      });
+      const body = await r.text();
+      if (r.ok && body.includes('"timeseries"')) {
+        return new Response(body, {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=21600", ...cors },
+        });
+      }
+    } catch (e) { /* try next host */ }
+  }
+  return json({ error: "upstream unavailable" }, 502, cors);
+}
+
+// Kirin — Investment Check: สรุปสั้น ๆ ว่า "ก่อนซื้อรอบนี้ควรตรวจอะไร" ด้วย Workers AI
+// หมายเหตุ: worker ไม่รู้ยอดถือจริงของผู้ใช้ (อยู่ใน DIME) prompt จึงห้าม AI สรุปน้ำหนักจริง
 async function handleKirin(request, env) {
   const cors = {
     "access-control-allow-origin": "*",
@@ -124,8 +173,9 @@ async function handleKirin(request, env) {
   if (await rateLimited(ip, 12, 60)) return json({ error: "rate limited — ลองใหม่ในอีกครู่" }, 429, cors);
 
   // --- Layer 3: input hardening (bound cost per call) -------------------
+  // snapshot พ่วงบริบทนโยบาย (สัดส่วนอ้างอิง/จังหวะเงินสด/ตัวที่น่าศึกษา) มาด้วย
   const len = parseInt(request.headers.get("content-length") || "0", 10);
-  if (len > 12000) return json({ error: "payload too large" }, 413, cors);
+  if (len > 16000) return json({ error: "payload too large" }, 413, cors);
 
   let snap;
   try { snap = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, cors); }
@@ -136,61 +186,111 @@ async function handleKirin(request, env) {
   // coerce/cap ทุก field กันการยัดสตริงยาวเพื่อพองต้นทุน prompt
   const s = (v, n) => String(v == null ? "" : v).replace(/[\r\n]+/g, " ").slice(0, n);
   const num = v => (typeof v === "number" && isFinite(v)) ? v : null;
+  const SLEEVE_TH = {
+    core: "Core Market", mega: "Mega Trend", dividend: "Dividend Growth", income: "Current Income",
+  };
+  const THEME_TH = {
+    ai_infra: "AI Infrastructure", energy_dc: "Energy & Data Center",
+    cloud_ai: "Cloud & AI Platforms", ai_app: "AI Applications", health_ai: "Healthcare AI & Silver Economy",
+  };
   const lines = holdings.map(h => {
-    const price = num(h.price), chg = num(h.chgPct), score = num(h.score), disc = num(h.disc), pe = num(h.pe), yld = num(h.yield);
-    const bits = [`${s(h.t, 8)} (${s(h.status, 8)})`, `ราคา $${price ?? "?"}`, `วันนี้ ${chg == null ? "?" : (chg >= 0 ? "+" : "") + chg}%`];
-    if (score != null) bits.push(`คะแนน ${score}/100 = ${s(h.signal, 40)}`);
+    const price = num(h.price), score = num(h.score), disc = num(h.disc), pe = num(h.pe), yld = num(h.yield);
+    const sleeve = SLEEVE_TH[String(h.sleeve || "")] || "อื่น ๆ";
+    const theme = THEME_TH[String(h.theme || "")] || null;
+    const bits = [`${s(h.t, 8)} [${sleeve}${theme ? " · " + theme : ""}${h.moon ? " · Moonshot" : ""}]`,
+                  `ราคา $${price ?? "?"}`];
+    if (score != null) bits.push(`คะแนนจังหวะ ${score}/100 = ${s(h.status, 30)}`);
+    if (h.noScore) bits.push(`ไม่มีคะแนน: ${s(h.noScore, 60)}`);
+    if (h.coreBand) bits.push(`ระดับ DCA: ${s(h.coreBand, 40)}`);
     if (disc != null) bits.push(`ต่ำกว่าจุดสูง52wk ${disc}%`);
     if (pe != null) bits.push(`P/E ${pe} (มัธยฐานอดีต ${num(h.medPE) ?? "?"})`);
-    if (yld != null) bits.push(`ปันผล ${yld}% (ปกติ ${num(h.medYield) ?? "?"}%)`);
+    if (yld != null) bits.push(`เงินจ่าย/ปี ${yld}%${num(h.medYield) != null ? ` (ปกติ ${num(h.medYield)}%)` : ""}`);
+    if (num(h.divGrowth) != null) bits.push(`เงินจ่ายโต ${num(h.divGrowth)}%/ปี`);
+    if (num(h.totalReturn) != null) bits.push(`ผลตอบแทนรวม ${num(h.totalReturn)}%`);
+    if (h.yieldDriver) bits.push(`ที่มาของ yield: ${s(h.yieldDriver, 16)}`);
+    if (h.incomeLevel) bits.push(`ความยั่งยืนเงินจ่าย: ${s(h.incomeLevel, 40)}`);
     return "- " + bits.join(", ");
   }).join("\n");
 
+  const ledger = s(snap.ledger, 12) || "DIME";
+  const ref = (snap.reference && typeof snap.reference === "object") ? snap.reference : {};
+  const refLine = ["core", "mega", "dividend", "income"]
+    .filter(k => num(ref[k]) != null)
+    .map(k => `${SLEEVE_TH[k]} ${num(ref[k])}%`).join(" · ") || "(ไม่มีข้อมูลสัดส่วนอ้างอิง)";
+  const top = Array.isArray(snap.top) ? snap.top.slice(0, 5) : [];
+  const topLine = top.length
+    ? top.map(x => `${s(x.t, 8)}${num(x.score) != null ? `(${num(x.score)})` : ""}${x.limited ? " [ข้อมูลจำกัด]" : ""}`).join(", ")
+    : "(ยังไม่มี)";
+
   // --- GUARDRAIL: คำนวณรายชื่อที่อนุญาต/ห้าม เอง (ไม่พึ่งให้ AI กรอง) ---
-  const isCore = st => /^(OWN|BUY\d?|WATCH)$/.test(String(st || ""));
   const tk = h => s(h.t, 8).toUpperCase();
-  const coreRanked = holdings
-    .filter(h => isCore(h.status) && num(h.score) != null)
+  const moonTickers = holdings.filter(h => h.moon).map(tk).filter(Boolean);
+  const megaRanked = holdings
+    .filter(h => String(h.sleeve) === "mega" && !h.moon && num(h.score) != null)
     .sort((a, b) => num(b.score) - num(a.score));
-  const moonTickers = holdings.filter(h => String(h.status) === "MOON").map(tk).filter(Boolean);
-  const allowList = coreRanked.slice(0, 5).map(h => `${tk(h)}(${num(h.score)})`).join(", ") || "(ไม่มีหุ้น core ที่มีคะแนน)";
+  const allowList = ["VOO (Core — ปลายทาง DCA หลักเสมอ)"]
+    .concat(megaRanked.slice(0, 5).map(h => `${tk(h)}(${num(h.score)})`)).join(", ");
   const denyList = moonTickers.join(", ") || "(ไม่มี)";
 
-  const sys = `คุณคือ "Kirin" (麒麟) ที่ปรึกษาการลงทุนระยะยาวสไตล์ Warren Buffett ของพอร์ต Mega Trend
-หลักการที่ต้องยึด (Investment Policy Statement ของผู้ใช้):
-- ลงทุนตาม Mega Trend: AI Infrastructure, Energy/Data Center, Cloud, Healthcare AI
-- ถือยาว 10-20 ปี, DCA อย่างมีวินัย, ไม่เล่นตามกระแส
-- "โลภเมื่อคนอื่นกลัว" ซื้อเพิ่มตอนราคาย่อ/ตลาดกลัว ไม่ขายเพราะข่าวสั้นหรือตลาด panic
-- Income (SCHD/JEPQ) ดูที่ปันผล ไม่ใช่จับจังหวะราคา
-- Moonshot คุมไม่เกิน 5% ของพอร์ต
+  const sys = `คุณคือ "Kirin" (麒麟) ผู้ช่วยตรวจสอบก่อนซื้อของแอป "Buffett Investment Check"
+ทำงานตาม Investment Policy Statement (IPS) v${s(snap.ipsVersion, 8) || "2.1"} ของผู้ใช้
 
-กฎสำคัญในการแนะนำ:
-- "หุ้นน่าสะสม" ให้เลือกจากกลุ่ม core เท่านั้น (status = OWN, BUY, WATCH) ที่คะแนนสูงและถูกเทียบประวัติ
-- ห้ามแนะนำหุ้น Moonshot (status = MOON) ว่าน่าสะสม แม้คะแนนจะสูง เพราะคะแนนที่สูงของ moonshot มักมาจากราคาที่ร่วงแรง (falling knife) ไม่ใช่ของถูกที่มีคุณภาพ — ให้พูดถึง moonshot เฉพาะในหัวข้อข้อควรระวัง และย้ำเพดาน 5%
-- Income (SCHD/JEPQ) ห้ามให้ "คะแนน" หรือจับจังหวะราคา ให้พูดถึงเฉพาะว่าปันผลปกติหรือสูงกว่าปกติ
+สิ่งที่ต้องเข้าใจก่อนตอบ (สำคัญที่สุด):
+- แอปนี้ **ไม่รู้พอร์ตจริงของผู้ใช้** ยอดถือจริง น้ำหนักจริง ต้นทุนเฉลี่ย และเงินสดจริง อยู่ใน ${ledger}
+- ตัวเลขสัดส่วนที่ให้มาเป็น "สัดส่วนอ้างอิงตามนโยบาย" ไม่ใช่สัดส่วนที่ผู้ใช้ถืออยู่จริง
+- หน้าที่ของคุณคือช่วยตอบว่า "ก่อนซื้อรอบนี้ ควรตรวจอะไรบ้าง" ไม่ใช่สั่งให้ซื้อหรือขาย
 
-หน้าที่: อ่านข้อมูลสแนปช็อตพอร์ต แล้วสรุปสถานการณ์เป็นภาษาไทยกระชับ ให้ข้อคิดที่นำไปใช้ได้จริง
-รูปแบบคำตอบ (ห้ามเกิน 180 คำ, ใช้ bullet):
-1. ภาพรวมตลาดจากดัชนี Buffett Opportunity Index
-2. หุ้น core 2-3 ตัวที่ "น่าสะสมตอนนี้" ที่สุด (อ้างคะแนน + ราคาที่ต่ำกว่าประวัติ/P-E ต่ำกว่ามัธยฐาน) พร้อมเหตุผลเชื่อมโยง Mega Trend
-3. ข้อควรระวัง 1-2 ข้อ (หุ้นที่แพงเทียบประวัติ และ/หรือ moonshot ที่ผันผวน)
-4. คำแนะนำเชิงปฏิบัติที่ตรงกับ IPS (DCA ต่อ, เก็บเงินสดรอจังหวะ, เพิ่มน้ำหนักกลุ่มไหน)
+โครงพอร์ตอ้างอิง (Core มาก่อนเสมอ):
+1) Core Market = VOO — ฐานพอร์ต ปลายทางหลักของ DCA
+2) Mega Trend — หุ้นธีมรายตัว ตั้งใจให้น้ำหนักเกินตลาด รับความเสี่ยงกระจุกตัวสูงกว่า
+3) Dividend Growth = SCHD — คุณภาพและการเติบโตของเงินปันผล ไม่ใช่ผลิตภัณฑ์ yield สูง
+4) Current Income = JEPQ — เงินจ่ายรายเดือนจากปันผล + การขายออปชัน ผันผวนได้ ไม่ใช่ตราสารหนี้ ไม่ใช่เงินสด
+Moonshot อยู่ภายใน Mega Trend เป็นระดับความเสี่ยง ไม่ใช่ธีมธุรกิจ
+
+คำที่ใช้ได้: "ตามสัดส่วนอ้างอิง", "ควรตรวจสอบใน ${ledger}", "อาจเหมาะกับการพิจารณา", "ข้อมูลยังไม่พอ"
+คำที่ห้ามใช้เด็ดขาด (เพราะคุณไม่รู้ยอดจริง):
+- "พอร์ตของคุณต่ำกว่าเป้าหมาย" / "คุณถือ X มากเกินไป"
+- "คุณควรซื้อจำนวน..." (ห้ามระบุจำนวนเงินหรือจำนวนหุ้น)
+- "ต้องเพิ่มน้ำหนักทันที"
+- "ขายเพื่อปรับพอร์ต"
+
+ข้อห้ามอื่น:
+- ห้ามเรียก JEPQ ว่าตราสารหนี้ เงินฝาก หรือเงินสดสำรอง
+- ห้ามบอกว่า yield ที่สูงขึ้นคือข่าวดีโดยอัตโนมัติ — ถ้าสูงขึ้นเพราะราคาลง ต้องอธิบายความเสี่ยงนั้น
+- ห้ามสับสนระหว่างผลตอบแทนรวม กับเงินจ่ายที่ได้รับ
+- ห้ามรับประกันหรือคาดการณ์ผลตอบแทนในอนาคต
+- ห้ามแนะนำให้ขายโดยอ้าง RSI หรือราคาระยะสั้นอย่างเดียว
+- ห้ามตีความ Watchlist Opportunity Index ว่าเป็นดัชนีความกลัวของตลาดทั้งตลาด
+- ห้ามระบุหุ้น Moonshot ว่าน่าซื้อเพิ่ม แม้คะแนนจะสูง
+- ถ้าข้อมูลขาดหรือเก่า ต้องบอกตรง ๆ ห้ามเดาแทน
+
+รูปแบบคำตอบ (ภาษาไทย ใช้ 4 หัวข้อนี้เท่านั้น ตามลำดับ รวมทั้งหมดไม่เกิน 150 คำ
+เขียนหัวข้อละ 1-2 บรรทัด ให้จบในการ์ดเดียวไม่ต้องเลื่อนยาว):
+Core ตอนนี้:
+ธีมที่น่าดู:
+ตัวที่ควรรอ:
+สิ่งที่ต้องเช็กใน ${ledger}:
+
 ปิดท้ายบรรทัดเดียวว่าเป็นมุมมองเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน`;
 
   const gauge = num(snap.gauge);
-  const user = `สแนปช็อตพอร์ต ณ ${s(snap.time, 40) || "ตอนนี้"}:
-Buffett Opportunity Index (เฉลี่ยหุ้นที่ถือ+Next Buy+Watchlist): ${gauge ?? "?"}/100 — "${s(snap.mood, 40)}"
-(ยิ่งสูง = ยิ่งถูก/ตลาดกลัว = จังหวะสะสมดี)
+  const user = `สแนปช็อตสภาพตลาด ณ ${s(snap.time, 40) || "ตอนนี้"}
+
+สัดส่วนอ้างอิงตามนโยบาย (ไม่ใช่ยอดจริง): ${refLine}
+จังหวะใช้เงินสดจากสภาพตลาด: ${s(snap.cashTiming, 60) || "ไม่มีข้อมูล"}
+Watchlist Opportunity Index (ค่าเฉลี่ยของหุ้นใน watchlist ที่ประเมินได้ ไม่ใช่ดัชนีตลาด): ${gauge ?? "ไม่มีข้อมูล"}/100${num(snap.gaugeN) ? ` จาก ${num(snap.gaugeN)} ตัว` : ""}
+ตัวที่ระบบจัดว่าน่าศึกษาต่อรอบนี้: ${topLine}
 
 รายตัว:
 ${lines}
 
 ข้อบังคับเด็ดขาด (ห้ามฝ่าฝืน):
-- หัวข้อ "หุ้นน่าสะสม" ให้เลือก 2-3 ตัวจากลิสต์นี้เท่านั้น (เรียงตามคะแนนแล้ว): ${allowList}
-- ห้ามระบุหุ้นเหล่านี้ว่า "น่าสะสม" โดยเด็ดขาด พูดถึงได้เฉพาะในหัวข้อ "ข้อควรระวัง": ${denyList}
-- ถ้าหุ้นในลิสต์ที่อนุญาตยังแพง (คะแนนต่ำ) ให้บอกตรงๆ ว่ารอจังหวะได้ อย่าฝืนเชียร์
+- หัวข้อ "ธีมที่น่าดู" ให้อ้างถึงธีมและตัวอย่างหุ้นจากลิสต์นี้เท่านั้น: ${allowList}
+- ห้ามระบุหุ้นเหล่านี้ว่าน่าซื้อเพิ่ม (พูดได้เฉพาะในเชิงความเสี่ยง): ${denyList}
+- ห้ามสรุปว่าน้ำหนักจริงของผู้ใช้สูงหรือต่ำกว่าเป้า ให้บอกว่า "ต้องตรวจใน ${ledger}" แทน
+- ถ้าตัวที่อนุญาตยังแพง ให้บอกตรง ๆ ว่ารอได้ อย่าฝืนเชียร์
 
-ช่วยวิเคราะห์ตามรูปแบบที่กำหนด`;
+ช่วยสรุปตามรูปแบบ 4 หัวข้อที่กำหนด`;
 
   const MODELS = {
     "llama": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
@@ -198,10 +298,12 @@ ${lines}
   };
   const model = MODELS[snap.model] || MODELS.llama;
 
-  // ส่วน "น่าสะสม" = ข้อความก่อนหัวข้อข้อควรระวัง — moonshot ต้องไม่โผล่ในนี้
+  // ส่วน "Core ตอนนี้" + "ธีมที่น่าดู" — moonshot ต้องไม่โผล่ในสองหัวข้อนี้
+  // ตัดตั้งแต่ต้นคำตอบถึงหัวข้อ "ตัวที่ควรรอ" (ซึ่งพูดถึง moonshot เชิงความเสี่ยงได้)
+  // ถ้าหาหัวข้อไม่เจอ ให้ตรวจทั้งข้อความ (เข้มไว้ก่อน)
   const accumPart = txt => {
-    const i = txt.search(/ข้อควรระวัง|ควรระวัง|ระวัง|WAIT/i);
-    return (i > 0 ? txt.slice(0, i) : txt).toUpperCase();
+    const end = txt.search(/ตัวที่ควรรอ|ควรรอ|ความเสี่ยง|ข้อควรระวัง|ต้องเช็ก/);
+    return (end > 0 ? txt.slice(0, end) : txt).toUpperCase();
   };
   const moonLeaks = txt => {
     const head = accumPart(txt);
@@ -235,7 +337,7 @@ ${lines}
     let leaked = moonLeaks(text);
     if (leaked.length) {
       // retry ครั้งเดียวด้วยคำสั่งเข้มขึ้น (ระบุตัวที่หลุดตรงๆ)
-      const stricter = `\n\n[แก้ไข] ครั้งก่อนคุณระบุ ${leaked.join(", ")} ในหัวข้อน่าสะสม ซึ่งผิดกฎ — หุ้นเหล่านี้เป็น Moonshot ห้ามอยู่ในหัวข้อน่าสะสมเด็ดขาด ให้ย้ายไปข้อควรระวังเท่านั้น แล้วเขียนใหม่ทั้งหมด`;
+      const stricter = `\n\n[แก้ไข] ครั้งก่อนคุณระบุ ${leaked.join(", ")} ในหัวข้อ "Core ตอนนี้" หรือ "ธีมที่น่าดู" ซึ่งผิดกฎ — หุ้นเหล่านี้เป็น Moonshot ห้ามอยู่ในสองหัวข้อนั้นเด็ดขาด ให้ย้ายไปหัวข้อ "ตัวที่ควรรอ" เท่านั้น แล้วเขียนใหม่ทั้งหมดตามรูปแบบ 4 หัวข้อ`;
       const retry = (await callModel(stricter)).trim();
       if (retry && !moonLeaks(retry).length) { text = retry; guardrail = "corrected"; }
       else { guardrail = "flagged"; } // retry ยังหลุด -> คงคำตอบเดิมไว้ พร้อม flag

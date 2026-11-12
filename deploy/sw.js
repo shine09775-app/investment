@@ -4,9 +4,15 @@
 // navigation response whose .redirected flag is true. We never precache
 // the redirect-prone "./index.html" URL, and we strip the flag on any
 // response before it's cached or returned.
-const CACHE = "megaport-v4";
+// v6: แอปเปลี่ยนเป็น "Buffett Investment Check" (3 แท็บ ไม่มี portfolio tracker)
+// ips-config.js และ portfolio-engine.js ต้องอยู่ใน precache ไม่งั้นเปิดออฟไลน์แล้วจอว่าง
+// v7: /api/* ทุก endpoint (รวม /api/fundamentals ของหุ้นไทย) เป็น network-first
+//     และหน้า HTML (navigate) เป็น network-first เพื่อให้ deploy ใหม่เห็นทันที ออฟไลน์ค่อยใช้ cache
+const CACHE = "megaport-v7";
 const SHELL = [
   "./",
+  "./ips-config.js",
+  "./portfolio-engine.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",
@@ -35,12 +41,17 @@ self.addEventListener("fetch", (e) => {
 
   // Live data (our proxy / yahoo / public proxies): network-first, fall back to last cached
   const isData =
-    url.pathname.includes("/api/chart") ||
-    url.pathname.includes("/api/eps") ||
+    (url.origin === location.origin && url.pathname.startsWith("/api/")) ||
     url.hostname.includes("yahoo") ||
     url.search.includes("yahoo");
   if (isData) {
     e.respondWith(networkFirst(req));
+    return;
+  }
+
+  // HTML page: network-first so a new deploy shows on the first reload; offline -> cached shell
+  if (req.mode === "navigate" && url.origin === location.origin) {
+    e.respondWith(networkFirst(req).then((res) => (res.status === 503 ? cache_shell(res) : res)));
     return;
   }
 
@@ -78,6 +89,11 @@ async function networkFirst(req) {
       headers: { "content-type": "application/json" },
     });
   }
+}
+
+async function cache_shell(fallback) {
+  const shell = await caches.match("./");
+  return shell || fallback;
 }
 
 async function staleWhileRevalidate(req) {

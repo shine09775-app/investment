@@ -1,0 +1,17 @@
+{
+  "name": "mega-trend-portfolio",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Core–Satellite family investment management system (IPS v2.0) — Cloudflare Pages",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "check": "node --check src/ips-config.js && node --check src/portfolio-engine.js && node --check src/_worker.js && node --check src/sw.js && node --check scripts/dev-server.mjs",
+    "build": "node scripts/build.js",
+    "dev": "wrangler pages dev",
+    "dev:local": "npm run build && node scripts/dev-server.mjs",
+    "deploy": "npm run build && wrangler pages deploy deploy --project-name mega-trend-portfolio --branch main"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

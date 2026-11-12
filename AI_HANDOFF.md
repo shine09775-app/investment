@@ -48,7 +48,7 @@ investment/
 - ปุ่ม SVG ธงไทย: `หุ้นไทย`
 - หุ้นเริ่มต้น 8 ตัว: `ADVANC`, `BDMS`, `CPALL`, `CPN`, `PTT`, `PTTEP`, `KBANK`, `SCB`
 - การ์ดแสดงราคา, P/E, EPS, เงินปันผล 12 เดือน, P/BV, หนี้/สินทรัพย์ และส่วนลดจาก High 52 สัปดาห์ เมื่อข้อมูลมี
-- แตะการ์ดเพื่อเปิด detail drawer: ตัวชี้วัดครบ, Operating income, ความเสี่ยง, ตัวเลขธุรกิจที่ควรติดตาม, และลิงก์ Yahoo Finance
+- แตะการ์ดเพื่อเปิด detail drawer: % เปลี่ยนแปลงรายวัน, กราฟราคา 1M/3M/6M/1Y/2Y (ใช้ `chartBlock()`/`loadChart()` ร่วมกับฝั่งสหรัฐผ่าน `cmCtx`), ตัวชี้วัดครบ, Operating income, ความเสี่ยง, ตัวเลขธุรกิจที่ควรติดตาม, และลิงก์ Yahoo Finance
 - ปุ่ม `รีเฟรช` ล่างหน้าจอเรียกตลาดที่กำลังเลือก (`refreshActiveMarket()`)
 
 ## Yahoo Finance flow

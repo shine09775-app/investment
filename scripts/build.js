@@ -33,7 +33,7 @@ const html = fs.readFileSync(path.join(outDir, "index.html"), "utf8");
 ok(`src/ -> deploy/ (index.html ${Buffer.byteLength(html).toLocaleString()} bytes)`);
 
 // 2. syntax check
-const jsFiles = ["ips-config.js", "portfolio-engine.js", "_worker.js", "sw.js"];
+const jsFiles = ["ips-config.js", "portfolio-engine.js", "thai-fundamentals.js", "_worker.js", "sw.js"];
 for (const f of jsFiles) {
   const p = path.join(outDir, f);
   if (!fs.existsSync(p)) { fail(`ไม่พบไฟล์ ${f}`); continue; }
@@ -56,9 +56,20 @@ for (const f of refs) {
 
 // 4. service worker must precache the app-logic scripts (ไม่งั้นออฟไลน์พัง)
 const sw = fs.readFileSync(path.join(outDir, "sw.js"), "utf8");
-for (const f of ["ips-config.js", "portfolio-engine.js"]) {
+for (const f of ["ips-config.js", "portfolio-engine.js", "thai-fundamentals.js"]) {
   if (sw.includes(f)) ok(`sw precache: ${f}`);
   else fail(`sw.js ไม่ได้แคช ${f} — โหมดออฟไลน์จะพัง`);
+}
+
+// 5. ข้อมูลงบหุ้นไทยที่ผู้ดูแลกรอก ต้องมีแหล่งอ้างอิงและงวดครบทุกค่า
+{
+  const TF = require(path.join(outDir, "thai-fundamentals.js"));
+  const file = path.join(outDir, "data", "thai-fundamentals.json");
+  try {
+    const errs = TF.validateData(JSON.parse(fs.readFileSync(file, "utf8")));
+    if (errs.length) fail("data/thai-fundamentals.json ไม่ผ่านการตรวจ:\n  " + errs.join("\n  "));
+    else ok("data/thai-fundamentals.json ผ่านการตรวจ (ทุกค่ามีแหล่งและงวด)");
+  } catch (e) { fail("อ่าน data/thai-fundamentals.json ไม่ได้: " + e.message); }
 }
 
 if (process.exitCode) console.error("\nbuild failed");

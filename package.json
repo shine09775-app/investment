@@ -5,7 +5,7 @@
   "description": "Core–Satellite family investment management system (IPS v2.0) — Cloudflare Pages",
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
-    "check": "node --check src/ips-config.js && node --check src/portfolio-engine.js && node --check src/_worker.js && node --check src/sw.js && node --check scripts/dev-server.mjs",
+    "check": "node --check src/ips-config.js && node --check src/portfolio-engine.js && node --check src/thai-fundamentals.js && node --check src/_worker.js && node --check src/sw.js && node --check scripts/dev-server.mjs",
     "build": "node scripts/build.js",
     "dev": "wrangler pages dev",
     "dev:local": "npm run build && node scripts/dev-server.mjs",

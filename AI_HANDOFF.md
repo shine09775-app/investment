@@ -19,6 +19,8 @@ investment/
 │  ├─ _worker.js             Cloudflare Pages Worker: proxy Yahoo + Workers AI (/api/kirin)
 │  ├─ ips-config.js          IPS, universe หุ้นสหรัฐ, tabs, storage config
 │  ├─ portfolio-engine.js    pure calculation + UI-state migration
+│  ├─ thai-fundamentals.js   ROE / ปันผล / BVPS-EPS / การ์ดธนาคาร / ตรวจ P/E + validation ข้อมูล
+│  ├─ data/thai-fundamentals.json  งบรายปี + ตัวเลขธนาคาร ที่ผู้ดูแลกรอก (build ตรวจแหล่งทุกค่า)
 │  ├─ sw.js                  service worker (bump CACHE ทุกครั้งที่เปลี่ยน shell)
 │  └─ icons / manifest
 ├─ deploy/                   🤖 build output (ยัง commit ไว้เผื่อ Cloudflare ดึงจาก git) — ห้ามแก้ตรง
@@ -52,6 +54,9 @@ investment/
 - การ์ดแสดงราคา, P/E, EPS, เงินปันผล 12 เดือน, P/BV, หนี้/สินทรัพย์ และส่วนลดจาก High 52 สัปดาห์ เมื่อข้อมูลมี
 - แตะการ์ดเพื่อเปิด detail drawer: % เปลี่ยนแปลงรายวัน, กราฟราคา 1M/3M/6M/1Y/2Y (ใช้ `chartBlock()`/`loadChart()` ร่วมกับฝั่งสหรัฐผ่าน `cmCtx`), ตัวชี้วัดครบ, Operating income, ความเสี่ยง, ตัวเลขธุรกิจที่ควรติดตาม, และลิงก์ Yahoo Finance
 - ปุ่ม `รีเฟรช` ล่างหน้าจอเรียกตลาดที่กำลังเลือก (`refreshActiveMarket()`)
+- **กำไร ปันผล และการใช้ทุน** (หน้ารายละเอียด): ROE 5 ปี, DPS ปกติ/พิเศษ + Payout, BVPS เทียบ EPS และ "สิ่งที่ควรตรวจต่อ" — ข้อมูลจาก `src/data/thai-fundamentals.json` (ผู้ดูแลกรอกจาก IR/SET, ทุกค่ามีแหล่ง/งวด, ไม่มี = null) ตรรกะใน `src/thai-fundamentals.js` วิธีกรอกดู `docs/thai-fundamentals-data.md`
+- **การ์ดธนาคาร** (NIM, Credit Cost, NPL, CET1, CAR แยกกัน) แสดงเมื่อ `sector === "banking"` และซ่อน "หนี้/สินทรัพย์" ของหุ้นธนาคาร
+- EPS แยกป้าย "12 เดือนล่าสุด" (Yahoo trailingEps) กับ "งบปี" (annualDilutedEPS) · P/E ของ Yahoo ที่ไม่ตรงกับ ราคา ÷ EPS (>3%) แสดงกล่องเตือนทั้งสองค่าพร้อมงวด ไม่เขียนทับ
 
 ## Yahoo Finance flow
 

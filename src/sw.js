@@ -9,12 +9,14 @@
 // v7: /api/* ทุก endpoint (รวม /api/fundamentals ของหุ้นไทย) เป็น network-first
 //     และหน้า HTML (navigate) เป็น network-first เพื่อให้ deploy ใหม่เห็นทันที ออฟไลน์ค่อยใช้ cache
 // v8: กราฟราคาใน drawer หุ้นไทย
+// v10: กำไร ปันผล และการใช้ทุน + การ์ดธนาคาร (thai-fundamentals.js)
 // v9: หุ้นไทย 12 ตัว + ฟิลเตอร์กลุ่มธุรกิจ + คะแนน/Opportunity Index ตรรกะเดียวกับสหรัฐ
-const CACHE = "megaport-v9";
+const CACHE = "megaport-v10";
 const SHELL = [
   "./",
   "./ips-config.js",
   "./portfolio-engine.js",
+  "./thai-fundamentals.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",

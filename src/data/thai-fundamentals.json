@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "readme": "ข้อมูลงบ ปันผล และตัวเลขธนาคารที่ผู้ดูแลกรอกจาก IR / SET เท่านั้น — วิธีกรอกดู docs/thai-fundamentals-data.md · ค่าที่ยังไม่มีแหล่งยืนยันให้เว้นเป็น null",
+  "stocks": {
+    "PTT": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "PTTEP": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "GULF": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "KBANK": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "SCB": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "TU": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "BDMS": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "ADVANC": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "CPALL": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "CPN": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "SCC": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    },
+    "MINT": {
+      "fiscalYearEnd": "12-31",
+      "statementBasis": "consolidated",
+      "annual": [],
+      "bank": {}
+    }
+  }
+}

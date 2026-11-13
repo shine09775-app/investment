@@ -258,6 +258,21 @@
   .thai-sheet-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px;}
   .thai-sheet-metrics .met{min-height:54px;}
   .thai-analysis{margin-top:11px;background:rgba(79,140,255,.10);border:1px solid rgba(79,140,255,.30);border-radius:9px;padding:8px 10px;font-size:11px;color:#a9c6ff;line-height:1.55;}
+  .tf-block{margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);}
+  .tf-title{font-size:12px;font-weight:800;margin-bottom:4px;} .tf-unit{color:var(--mut);font-weight:600;font-size:10.5px;}
+  .tf-sub{font-size:10px;color:var(--sub);font-weight:700;margin-bottom:2px;}
+  .tf-svg{width:100%;height:auto;display:block;}
+  .tf-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tf-table-wrap{overflow-x:auto;margin-top:6px;-webkit-overflow-scrolling:touch;}
+  .tf-table{border-collapse:collapse;width:100%;min-width:300px;font-size:10.5px;}
+  .tf-table th,.tf-table td{padding:4px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top;}
+  .tf-table thead th{color:var(--mut);font-weight:700;} .tf-table tbody th{text-align:left;color:var(--sub);font-weight:600;}
+  .tf-na{color:var(--mut);} .tf-calc{font-size:8.5px;color:var(--yellow);border:1px solid rgba(240,192,64,.4);border-radius:4px;padding:0 3px;margin-left:2px;}
+  .tf-over{font-size:8.5px;color:var(--orange);white-space:normal;}
+  .tf-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:9.5px;color:var(--mut);margin-top:3px;} .tf-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;}
+  .tf-check{margin-top:8px;font-size:11px;line-height:1.55;color:var(--txt);background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.28);border-radius:8px;padding:7px 9px;}
+  .tf-src{font-size:9.5px;color:var(--mut);margin-top:6px;line-height:1.6;} .tf-src a,.tf-bank-met a{color:#9ebdff;}
+  .tf-bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:5px;} .tf-bank-met{text-align:left;}
   .thai-analysis ul{margin:0;padding-left:16px;}.thai-analysis li+li{margin-top:3px;}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
@@ -311,6 +326,7 @@
 <!-- นโยบายการลงทุน และตรรกะการคำนวณ แยกจากข้อมูลราคา -->
 <script src="ips-config.js"></script>
 <script src="portfolio-engine.js"></script>
+<script src="thai-fundamentals.js"></script>
 <script>
 "use strict";
 const CFG = window.IPS_CONFIG;
@@ -388,7 +404,7 @@ const THAI_STOCKS = [
 ];
 const thaiSectorOf = key => THAI_SECTORS.find(x=>x.key===key) || {key, label:key, color:"var(--sub)"};
 let thaiSectorFilter = "all", thaiStatusFilter = "all";
-const THAI_CACHE_KEY = "thai-stock-live-v3";
+const THAI_CACHE_KEY = "thai-stock-live-v4";
 let thaiData = {};
 let thaiBusy = false;
 let thaiTicker = null;
@@ -427,9 +443,15 @@ function thaiMetricData(daily,monthly,fund){
   // % รายวัน: เทียบราคาปิดวันทำการก่อนหน้า (ตรรกะเดียวกับฝั่งสหรัฐ ห้ามใช้ chartPreviousClose)
   let prevClose=null;
   if(day.length>=2){ const lastT=day[day.length-1].t, mktT=meta.regularMarketTime||lastT; prevClose=(mktT-lastT)<24*3600?day[day.length-2].c:day[day.length-1].c; }
-  const annualEps=thaiRows(fund,"annualDilutedEPS"), eps=thaiLast(thaiRows(fund,"trailingEps"))?.v??thaiLast(annualEps)?.v??null;
-  const directPe=thaiLast(thaiRows(fund,"trailingPeRatio"))?.v??null;
+  // EPS: แยก "12 เดือนล่าสุด" (trailingEps) ออกจาก "งบปี" — ห้ามติดป้าย Trailing ให้ EPS งบปี
+  const annualEps=thaiRows(fund,"annualDilutedEPS"), ttmRow=thaiLast(thaiRows(fund,"trailingEps")), fyRow=thaiLast(annualEps);
+  const eps=ttmRow?.v??fyRow?.v??null;
+  const epsBasis=ttmRow?{type:"TTM",asOf:ttmRow.d}:fyRow?{type:"FY",asOf:fyRow.d}:null;
+  const peRow=thaiLast(thaiRows(fund,"trailingPeRatio")), directPe=peRow?.v??null;
   const pe=directPe??(eps>0&&price?price/eps:null);
+  const peSource=directPe!=null?"yahoo":pe!=null?"calc":null;
+  // ตรวจ P/E ของ provider เทียบ ราคา ÷ EPS ที่มี — บอกด้วยว่าฐานงวดตรงกันหรือไม่ (ไม่เขียนทับค่า provider)
+  const peChk=eps!=null?{...TF.peCheck({price, eps, providerPe:directPe}), sameBasis:!!ttmRow}:null;
   const pes=mon.map(p=>{ let e=null; annualEps.forEach(row=>{if(new Date(row.d).getTime()+45*86400000<=p.t*1000)e=row.v;});return e>0?p.c/e:null; }).filter(v=>v>0&&v<200);
   const divs=Object.values((daily&&daily.events&&daily.events.dividends)||{}).filter(x=>thaiNum(x&&x.amount)!=null&&x.date>=Date.now()/1000-370*86400).reduce((s,x)=>s+x.amount,0);
   const qOp=thaiRows(fund,"quarterlyOperatingIncome").slice(-4), operating=qOp.length===4?qOp.reduce((s,x)=>s+x.v,0):thaiLast(thaiRows(fund,"annualOperatingIncome"))?.v??null;
@@ -439,6 +461,7 @@ function thaiMetricData(daily,monthly,fund){
   const val=EN.valuationFromHistory({annual:annualEps.map(r=>({d:r.d,eps:r.v})), monthly:mon, price});
   const sc=EN.scoreStock({price, hi52:high, rsiv:EN.rsi(day.map(p=>p.c)), val});
   return {val:EN.okVal(val)?{curPE:val.curPE,medPE:val.medPE,ratio:val.ratio,asOfMs:Date.now()}:{reason:val.reason}, mode:sc.mode, modeWhy:sc.modeWhy, score:sc.score, drawdown:EN.drawdownPct(price,high),
+    epsBasis, peSource, peAsOf:peRow?.d||null, peChk,
     price, high, chgPct:price&&prevClose?(price-prevClose)/prevClose*100:null, dd:price&&high?(price/high-1)*100:null, pe, peMedian:thaiMedian(pes), eps, yieldPct:price&&divs>0?divs/price*100:null, operating, pbv:marketCap&&equity>0?marketCap/equity:null, debtAssets:debt!=null&&assets>0?debt/assets*100:null, marketTime:meta.regularMarketTime||thaiLast(day)?.t||null};
 }
 async function loadThaiOne(sec){
@@ -679,16 +702,29 @@ function showActiveMarket(){
   }
 }
 function refreshActiveMarket(){ return UI.market==="thai" ? loadThaiStocks(true) : loadAll(); }
+const thaiIsBank = sec => !!sec && sec.sector === "banking";
+function thaiEpsLabel(d){ const b=d.epsBasis; return !b?"ไม่ทราบงวด":b.type==="TTM"?"12 เดือนล่าสุด":`งบปี ${TF.BE(Number(String(b.asOf).slice(0,4)))}`; }
+function thaiPeLabel(d){ return d.peSource==="yahoo"?"Yahoo":d.peSource==="calc"?(d.epsBasis&&d.epsBasis.type==="FY"?"คำนวณ · EPS งบปี":"คำนวณ"):"—"; }
+function thaiPeNote(d){
+  const c=d.peChk; if(!c) return "";
+  const epsTxt=d.epsBasis&&d.epsBasis.type==="TTM"?"EPS 12 เดือนล่าสุด":thaiEpsLabel(d).replace("งบปี","EPS งบปี");
+  if(c.state==="mismatch") return `<div class="warn-box" style="margin-top:8px"><b>P/E ไม่สอดคล้องกัน</b> — แสดงทั้งสองค่า ไม่ปรับแก้และไม่เดาสาเหตุ<br>
+    • Yahoo: ${thaiRatio(c.provider)} (P/E 12 เดือน · ข้อมูล ณ ${esc(d.peAsOf||"ไม่ระบุ")})<br>
+    • คำนวณ: ราคา ${thaiFmt(d.price)} ฿ (ณ ${d.marketTime?fmtDT(d.marketTime):"ไม่ระบุ"}) ÷ ${epsTxt} ${thaiFmt(d.eps)} ฿ (งวดถึง ${esc(d.epsBasis.asOf)}) = ${thaiRatio(c.computed)}<br>
+    ต่างกัน ${fmt(c.diffPct,1)}%${c.sameBasis?"":" · EPS ที่มีเป็นงบปี ส่วน P/E ของ Yahoo เป็นฐาน 12 เดือน จึงเป็นคนละงวด"}</div>`;
+  if(c.state==="negative_eps") return `<div class="note">${epsTxt} ≤ 0 — P/E ไม่มีความหมาย</div>`;
+  return "";
+}
 function thaiReason(d){
   if(d.mode==="timing") return EN.candidateReason({}, {val:d.val, dd:d.drawdown});
   return "ไม่ให้คะแนนจังหวะ · "+(d.modeWhy||"ข้อมูลมูลค่าไม่พอ");
 }
-function thaiAnalysis(d){
+function thaiAnalysis(d,sec){
   const rows=[];
   if(EN.okVal(d.val)){const diff=(d.val.ratio-1)*100;rows.push(`P/E งบปี ${thaiRatio(d.val.curPE)} ${diff>=0?"สูงกว่า":"ต่ำกว่า"}มัธยฐาน 5 ปีของตัวเอง (${thaiRatio(d.val.medPE)}) ${thaiPct(Math.abs(diff))}`);}
   else if(d.val&&d.val.reason)rows.push(`ประเมินมูลค่าเทียบอดีตไม่ได้ — ${esc(d.val.reason)}`);
   if(thaiNum(d.dd))rows.push(d.dd<0?`ราคาต่ำกว่าจุดสูง 52 สัปดาห์ ${thaiPct(Math.abs(d.dd))}`:"ราคาอยู่ใกล้จุดสูง 52 สัปดาห์");
-  if(thaiNum(d.debtAssets))rows.push(`หนี้คิดเป็น ${thaiPct(d.debtAssets)} ของสินทรัพย์ล่าสุด`);
+  if(thaiNum(d.debtAssets)&&!thaiIsBank(sec))rows.push(`หนี้คิดเป็น ${thaiPct(d.debtAssets)} ของสินทรัพย์ล่าสุด`);
   return rows;
 }
 function thaiCard(sec,d){
@@ -700,7 +736,7 @@ function thaiCard(sec,d){
     <div class="row1"><div><div class="tk">${sec.t}</div><div class="nm">${esc(sec.n)}</div><div class="theme-tag">${esc(sc.label)}</div></div>
       <div><div class="price">${thaiFmt(d.price)} ฿</div><div class="chg" style="color:${chgClr}">${d.chgPct==null?"—":(d.chgPct>=0?"▲ ":"▼ ")+fmt(Math.abs(d.chgPct),2)+"%"}</div></div></div>
     ${d.mode?`<div class="pills">${statusBadge(d)}</div><div class="reason">${esc(thaiReason(d))}</div>`:""}
-    ${metricsRow([{k:"P/E",v:thaiRatio(d.pe),d:"Yahoo"},{k:"EPS",v:thaiFmt(d.eps),d:"Trailing"},{k:"ปันผล 12M",v:thaiPct(d.yieldPct)},{k:"P/BV",v:thaiRatio(d.pbv)},{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets)},{k:"ต่ำกว่า High",v:thaiNum(d.dd)&&d.dd<0?"-"+thaiPct(Math.abs(d.dd)):"—",c:"var(--orange)"}])}
+    ${metricsRow([{k:"P/E",v:thaiRatio(d.pe),d:thaiPeLabel(d)},{k:"EPS",v:thaiFmt(d.eps),d:thaiEpsLabel(d)},{k:"ปันผล 12M",v:thaiPct(d.yieldPct)},{k:"P/BV",v:thaiRatio(d.pbv)},...(thaiIsBank(sec)?[]:[{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets)}]),{k:"ต่ำกว่า High",v:thaiNum(d.dd)&&d.dd<0?"-"+thaiPct(Math.abs(d.dd)):"—",c:"var(--orange)"}])}
     <div class="datestamp">📅 ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</div></div>`;
 }
 const THAI_STATUS_FILTERS = CFG.MEGA_STATUS_FILTERS.filter(f=>f.key!=="moon");   // หุ้นไทยไม่มี Moonshot
@@ -741,16 +777,157 @@ function renderThaiSheet(){
   document.getElementById("thaiSheetName").innerHTML=`${thaiFlagSvg("thai")} ${esc(sec.n)}`;
   document.getElementById("thaiSheetTick").textContent=`${sec.t}.BK · ${thaiSectorOf(sec.sector).label}`;
   if(d.error||!thaiNum(d.price)){document.getElementById("thaiSheetBody").innerHTML=`<div class="miss-box">ยังไม่มีข้อมูลจาก Yahoo Finance · ลองกด รีเฟรช อีกครั้ง</div>`;return;}
-  const analysis=thaiAnalysis(d);
+  const analysis=thaiAnalysis(d,sec);
   const chgClr=d.chgPct==null?"var(--sub)":d.chgPct>=0?"var(--green)":"var(--red)";
   document.getElementById("thaiSheetBody").innerHTML=`<div class="sh-price"><span class="p">${thaiFmt(d.price)} ฿</span><span class="c" style="color:${chgClr}">${d.chgPct==null?"":(d.chgPct>=0?"+":"")+fmt(d.chgPct,2)+"%"}</span></div>
     ${d.mode?`<div class="pills">${statusBadge(d)}</div><div class="reason" style="margin:4px 0 2px">${esc(thaiReason(d))}</div>`:""}
     ${chartBlock()}
-    <div class="thai-sheet-metrics">${[{k:"P/E",v:thaiRatio(d.pe),d:"Yahoo ล่าสุด"},{k:"EPS",v:thaiFmt(d.eps),d:"Trailing EPS"},{k:"ปันผล",v:thaiPct(d.yieldPct),d:"12 เดือน"},{k:"Operating income",v:thaiMoney(d.operating),d:"TTM / ล่าสุด"},{k:"P/BV",v:thaiRatio(d.pbv),d:"Market cap ÷ equity"},{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets),d:"งบล่าสุด"}].map(m=>`<div class="met"><div class="k">${m.k}</div><div class="v">${m.v}</div><div class="d">${m.d}</div></div>`).join("")}</div>
+    <div class="thai-sheet-metrics">${[{k:"P/E",v:thaiRatio(d.pe),d:thaiPeLabel(d)+(d.peAsOf&&d.peSource==="yahoo"?" · "+d.peAsOf:"")},{k:"EPS",v:thaiFmt(d.eps),d:thaiEpsLabel(d)+(d.epsBasis?" · "+d.epsBasis.asOf:"")},{k:"ปันผล",v:thaiPct(d.yieldPct),d:"12 เดือน"},{k:"Operating income",v:thaiMoney(d.operating),d:"TTM / ล่าสุด"},{k:"P/BV",v:thaiRatio(d.pbv),d:"Market cap ÷ equity"},...(thaiIsBank(sec)?[]:[{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets),d:"งบล่าสุด"}])].map(m=>`<div class="met"><div class="k">${m.k}</div><div class="v">${m.v}</div><div class="d">${m.d}</div></div>`).join("")}</div>
+    ${thaiPeNote(d)}
     <div class="thai-analysis">${analysis.length?`<ul>${analysis.map(x=>`<li>${x}</li>`).join("")}</ul>`:"ข้อมูลย้อนหลังยังไม่พอสำหรับการเปรียบเทียบ"}</div>
+    <div id="thaiFundSlot">${thaiFundSection(sec)}</div>
     <div class="sh-sec"><h3>บทบาทที่ติดตาม</h3><p>${esc(sec.role)}</p></div><div class="sh-sec"><h3>ความเสี่ยงที่ทบทวน</h3><p>${esc(sec.risk)}</p></div><div class="sh-sec"><h3>ตัวเลขธุรกิจที่ต้องติดตาม</h3><div class="pills">${sec.metrics.map(x=>`<span class="pill">${esc(x)}</span>`).join("")}</div></div>
-    <div class="sh-sec"><h3>คุณภาพข้อมูล</h3><ul class="tight"><li>ราคา ณ ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</li><li>งบการเงินอาจรายงานคนละวันกับราคา</li><li>ค่าที่ไม่มีข้อมูลจะแสดง “—” ไม่ใช่ศูนย์</li><li>คะแนน: มูลค่าเทียบอดีต ${CFG.BUFFETT_WEIGHTS.valuation}% · ส่วนลดจาก High ${CFG.BUFFETT_WEIGHTS.drawdown}% · RSI ${CFG.BUFFETT_WEIGHTS.rsi}% (เหมือนหุ้นสหรัฐ)</li>${CFG.SCORE_DISCLAIMER_TH.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><a class="cta" href="https://finance.yahoo.com/quote/${sec.t}.BK" target="_blank" rel="noopener">เปิด ${sec.t}.BK ใน Yahoo Finance ↗</a></div>`;
+    <div class="sh-sec"><h3>คุณภาพข้อมูล</h3><ul class="tight"><li>ราคา ณ ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</li><li>P/E, EPS, P/BV และปันผล 12M ด้านบนมาจาก Yahoo (ข้อมูลตลาด) · ส่วน "กำไร ปันผล และการใช้ทุน" มาจาก IR / SET</li><li>งบการเงินอาจรายงานคนละวันกับราคา</li><li>ค่าที่ไม่มีข้อมูลจะแสดง “—” ไม่ใช่ศูนย์</li><li>คะแนน: มูลค่าเทียบอดีต ${CFG.BUFFETT_WEIGHTS.valuation}% · ส่วนลดจาก High ${CFG.BUFFETT_WEIGHTS.drawdown}% · RSI ${CFG.BUFFETT_WEIGHTS.rsi}% (เหมือนหุ้นสหรัฐ)</li>${CFG.SCORE_DISCLAIMER_TH.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><a class="cta" href="https://finance.yahoo.com/quote/${sec.t}.BK" target="_blank" rel="noopener">เปิด ${sec.t}.BK ใน Yahoo Finance ↗</a></div>`;
   renderCmRanges(); loadChart();
+  if(!thaiFund && !thaiFundErr){
+    const t=sec.t;
+    loadThaiFund().then(()=>{ const slot=document.getElementById("thaiFundSlot"); if(slot && thaiTicker===t) slot.innerHTML=thaiFundSection(sec); });
+  }
+}
+
+
+/* ---------- กำไร ปันผล และการใช้ทุน (หุ้นไทย) — ข้อมูลจาก src/data/thai-fundamentals.json ---------- */
+const TF = window.THAI_FUNDAMENTALS;
+let thaiFund = null, thaiFundErr = null;
+async function loadThaiFund(){
+  if(thaiFund) return thaiFund;
+  try{
+    const r = await fetchWithTimeout("./data/thai-fundamentals.json", 8000);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json();
+    const errs = TF.validateData(j);
+    if(errs.length) throw new Error("ไฟล์ข้อมูลไม่ผ่านการตรวจ: "+errs[0]);
+    thaiFund = j; thaiFundErr = null;
+  }catch(e){ thaiFundErr = e.message || String(e); }
+  return thaiFund;
+}
+const escAttr = s => esc(s).replace(/"/g,"&quot;");
+const tfNum = (v,d=2) => v==null ? "—" : Number(v).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+const tfBasisTh = b => b==="consolidated" ? "งบการเงินรวม" : b==="separate" ? "งบเฉพาะกิจการ" : (b||"ไม่ระบุฐานงบ");
+
+/* กราฟเล็ก 5 ปี: null = ช่องว่าง (เส้นขาด / แท่งเป็นกรอบประ "N/A") ไม่ลากเหมือนมีค่าจริง */
+function tfLineSvg(labels, vals, unit, color){
+  const W=320,H=120,P=22, xs=i=>P+(W-2*P)*i/(labels.length-1);
+  const nums=vals.filter(v=>v!=null); if(!nums.length) return "";
+  let lo=Math.min(0,...nums), hi=Math.max(...nums); if(hi===lo) hi=lo+1;
+  const ys=v=>14+(H-36)*(1-(v-lo)/(hi-lo));
+  let d="", pen=false;
+  vals.forEach((v,i)=>{ if(v==null){pen=false;return;} d+=(pen?"L":"M")+xs(i).toFixed(1)+" "+ys(v).toFixed(1); pen=true; });
+  return `<svg viewBox="0 0 ${W} ${H}" class="tf-svg" role="img" aria-label="กราฟ ${unit}">
+    <line x1="${P}" x2="${W-P}" y1="${ys(Math.max(lo,0)).toFixed(1)}" y2="${ys(Math.max(lo,0)).toFixed(1)}" stroke="#2a3346"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>
+    ${vals.map((v,i)=>v==null
+      ? `<text x="${xs(i)}" y="${H-28}" text-anchor="middle" font-size="9" fill="#5d6a82">N/A</text>`
+      : `<circle cx="${xs(i)}" cy="${ys(v)}" r="3.2" fill="${color}"/><text x="${xs(i)}" y="${ys(v)-6}" text-anchor="middle" font-size="9" fill="#c9d3e6">${tfNum(v,1)}</text>`).join("")}
+    ${labels.map((l,i)=>`<text x="${xs(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#7b879c">${l}</text>`).join("")}
+  </svg>`;
+}
+function tfBarSvg(labels, series, unit){
+  // series: [{vals:[...], color}] วางซ้อน (stack) ; null ในชุดแรก = ปีที่ไม่มีข้อมูล
+  const W=320,H=120,P=22, n=labels.length, bw=(W-2*P)/n*0.55, xc=i=>P+(W-2*P)*(i+.5)/n;
+  const tot=labels.map((_,i)=>series[0].vals[i]==null?null:series.reduce((s,x)=>s+(x.vals[i]||0),0));
+  const nums=tot.filter(v=>v!=null); if(!nums.length) return "";
+  const lo=Math.min(0,...nums), hi=Math.max(0,...nums), span=(hi-lo)||1, ys=v=>14+(H-36)*(1-(v-lo)/span);
+  let bars="";
+  labels.forEach((_,i)=>{
+    if(tot[i]==null){ bars+=`<rect x="${xc(i)-bw/2}" y="${ys(hi)}" width="${bw}" height="${Math.max(8,ys(lo)-ys(hi))}" fill="none" stroke="#2f3a50" stroke-dasharray="3 3"/><text x="${xc(i)}" y="${(ys(hi)+ys(lo))/2+3}" text-anchor="middle" font-size="9" fill="#5d6a82">N/A</text>`; return; }
+    let base=0;
+    for(const s of series){ const v=s.vals[i]||0; if(!v) continue; const y0=ys(base), y1=ys(base+v); bars+=`<rect x="${xc(i)-bw/2}" y="${Math.min(y0,y1)}" width="${bw}" height="${Math.max(1,Math.abs(y1-y0))}" rx="2" fill="${s.color}"/>`; base+=v; }
+    bars+=`<text x="${xc(i)}" y="${(tot[i]>=0?ys(tot[i])-4:ys(tot[i])+10)}" text-anchor="middle" font-size="9" fill="#c9d3e6">${tfNum(tot[i])}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" class="tf-svg" role="img" aria-label="กราฟ ${unit}">
+    <line x1="${P}" x2="${W-P}" y1="${ys(0)}" y2="${ys(0)}" stroke="#2a3346"/>${bars}
+    ${labels.map((l,i)=>`<text x="${xc(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#7b879c">${l}</text>`).join("")}</svg>`;
+}
+function tfTable(head, rows){
+  return `<div class="tf-table-wrap"><table class="tf-table"><thead><tr><th></th>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r=>`<tr><th>${r[0]}</th>${r.slice(1).map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function tfSources(facts){
+  const m=new Map();
+  facts.filter(f=>f&&f.sourceUrl).forEach(f=>{ if(!m.has(f.sourceUrl)) m.set(f.sourceUrl,f); });
+  if(!m.size) return "";
+  return `<div class="tf-src">แหล่ง: ${[...m.values()].map(f=>`<a href="${escAttr(f.sourceUrl)}" target="_blank" rel="noopener">${esc(f.sourceName)}</a> (งวด ${esc(f.periodEnd)} · อัปเดต ${esc(f.updatedAt)})`).join(" · ")}</div>`;
+}
+const tfTag = reported => reported===false ? ` <span class="tf-calc">คำนวณ</span>` : "";
+const tfNA = reason => `<span class="tf-na"${reason?` title="${escAttr(reason)}"`:""}>N/A</span>`;
+
+function thaiFundSection(sec){
+  const head = `<h3>กำไร ปันผล และการใช้ทุน · 5 ปีบัญชี</h3>`;
+  if(thaiFundErr) return `<div class="sh-sec">${head}<div class="miss-box">โหลดข้อมูลงบไม่สำเร็จ — ${esc(thaiFundErr)}</div></div>`;
+  if(!thaiFund) return `<div class="sh-sec">${head}<div class="loading" style="padding:10px 0">⏳ กำลังโหลดข้อมูลงบ…</div></div>`;
+  const stock = thaiFund.stocks[sec.t] || {annual:[], bank:{}};
+  const A = TF.analyze(stock);
+  const L = A.rows.map(r=>r.labelBE);
+  let html = `<div class="sh-sec tf">${head}
+    <div class="note" style="margin:0 0 6px">ปีบัญชี ${L[0]}–${L[L.length-1]} (พ.ศ.) · ${esc(tfBasisTh(A.basis))} · ข้อมูลจาก IR / SET ที่ผู้ดูแลกรอก แยกจากราคา Yahoo</div>`;
+  if(!A.hasAny){
+    return html + `<div class="miss-box">ยังไม่มีข้อมูลงบรายปีที่ตรวจสอบได้ของ ${esc(sec.t)} — รอผู้ดูแลกรอกใน src/data/thai-fundamentals.json พร้อมลิงก์แหล่งอ้างอิง</div></div>` + thaiBankSection(sec, stock);
+  }
+  // 1) ROE
+  html += `<div class="tf-block"><div class="tf-title">ROE 5 ปี <span class="tf-unit">(%)</span></div>
+    ${tfLineSvg(L, A.rows.map(r=>r.roe.value), "%", "#4f8cff") || `<div class="miss-box">ยังไม่มี ROE ที่รายงานหรือคำนวณได้</div>`}
+    ${tfTable(L, [["ROE (%)", ...A.rows.map(r=>r.roe.value==null?tfNA(r.roe.reason):tfNum(r.roe.value,1)+tfTag(r.roe.reported))]])}
+    ${A.rows.some(r=>r.roe.reported===false)?`<div class="note">คำนวณ: ${esc(TF.ROE_FORMULA)}</div>`:""}
+    ${A.rows.filter(r=>r.roe.value==null&&r.row).map(r=>`<div class="note">ปี ${r.labelBE}: ${esc(r.roe.reason)}</div>`).join("")}
+    ${tfSources(A.rows.map(r=>r.roe.fact))}</div>`;
+  // 2) DPS + Payout
+  html += `<div class="tf-block"><div class="tf-title">เงินปันผลต่อหุ้น <span class="tf-unit">(บาท)</span> และสัดส่วนจ่ายปันผล <span class="tf-unit">(%)</span></div>
+    ${tfBarSvg(L, [{vals:A.rows.map(r=>r.div.regular),color:"#26c281"},{vals:A.rows.map(r=>r.div.special),color:"#f0c040"}], "บาท") || `<div class="miss-box">ยังไม่มี DPS ที่ยืนยันได้</div>`}
+    <div class="tf-legend"><span><i style="background:#26c281"></i>ปันผลปกติ</span><span><i style="background:#f0c040"></i>ปันผลพิเศษ</span><span>ผูกกับปีบัญชีของผลประกอบการ ไม่ใช่ปีที่จ่าย</span></div>
+    ${tfTable(L, [
+      ["DPS ปกติ (บาท)", ...A.rows.map(r=>r.div.regular==null?tfNA(r.div.reason):tfNum(r.div.regular))],
+      ["DPS พิเศษ (บาท)", ...A.rows.map(r=>r.div.special!=null?tfNum(r.div.special):(r.div.regular!=null?`<span class="tf-na" title="แหล่งข้อมูลยังไม่ยืนยันว่ามีหรือไม่มี">ไม่ทราบ</span>`:tfNA()))],
+      ["Payout (%)", ...A.rows.map(r=>r.div.payout==null?tfNA(r.div.reason):tfNum(r.div.payout,1)+tfTag(r.div.payoutReported)+(r.div.overEarnings?`<div class="tf-over">จ่ายเกินกำไรปีนี้</div>`:""))],
+    ])}
+    ${A.rows.some(r=>r.div.payoutReported===false)?`<div class="note">คำนวณ: DPS (ปกติ + พิเศษที่ยืนยันได้) ÷ EPS ของปีบัญชีเดียวกัน ฐานจำนวนหุ้นเดียวกัน</div>`:""}
+    ${A.rows.filter(r=>r.row&&r.div.payout==null&&r.div.reason).map(r=>`<div class="note">ปี ${r.labelBE}: ${esc(r.div.reason)}</div>`).join("")}
+    ${tfSources(A.rows.flatMap(r=>r.row?[r.row.dpsRegular,r.row.dpsSpecial,r.row.payoutRatio]:[]))}</div>`;
+  // 3) BVPS vs EPS — ปีบัญชีเดียวกัน แยกสเกล ค่าจริงเป็นบาทต่อหุ้น
+  const G=A.growth;
+  html += `<div class="tf-block"><div class="tf-title">ทุนต่อหุ้น (BVPS) เทียบกำไรต่อหุ้น (EPS) <span class="tf-unit">(บาท/หุ้น)</span></div>
+    <div class="tf-pair">
+      <div><div class="tf-sub">BVPS</div>${tfBarSvg(L,[{vals:A.rows.map(r=>r.bvps),color:"#a78bfa"}],"BVPS")||`<div class="miss-box">ไม่มี BVPS</div>`}</div>
+      <div><div class="tf-sub">EPS</div>${tfBarSvg(L,[{vals:A.rows.map(r=>r.eps),color:"#2dd4bf"}],"EPS")||`<div class="miss-box">ไม่มี EPS</div>`}</div>
+    </div>
+    ${tfTable(L, [
+      ["BVPS (บาท)", ...A.rows.map(r=>r.bvps==null?tfNA():tfNum(r.bvps))],
+      ["EPS (บาท)", ...A.rows.map(r=>r.eps==null?tfNA():tfNum(r.eps)+(r.eps<=0?`<div class="tf-over">ขาดทุน</div>`:""))],
+    ])}
+    <div class="tf-check"><b>สิ่งที่ควรตรวจต่อ:</b> ${esc(G.headline)}
+      ${G.detail?`<div class="note" style="margin-top:3px">${esc(G.detail)}</div>`:""}
+      ${G.checks.map(c=>`<div class="note" style="margin-top:3px">${esc(c)}</div>`).join("")}
+      ${G.shareBaseNotes.length?`<div class="note" style="margin-top:3px">⚠️ ฐานจำนวนหุ้นเปลี่ยน — ${G.shareBaseNotes.map(esc).join(" · ")}</div>`:""}
+      <div class="note" style="margin-top:3px">BVPS/EPS สองค่าสรุปไม่ได้ว่าการลงทุนต่อสร้างมูลค่า — การเพิ่มทุน ซื้อหุ้นคืน หรือกำไรพิเศษมีผลได้</div></div>
+    ${tfSources(A.rows.flatMap(r=>r.row?[r.row.bvps,r.row.eps]:[]))}</div></div>`;
+  return html + thaiBankSection(sec, stock);
+}
+
+/* การ์ดเฉพาะธนาคาร — แสดงตาม sector ของหลักทรัพย์ในแอป (ไม่ hard-code ticker) */
+function thaiBankSection(sec, stock){
+  if(sec.sector !== "banking") return "";
+  const B = TF.bankCard(stock);
+  return `<div class="sh-sec tf-bank-sec"><h3>ตัวชี้วัดเฉพาะธนาคาร</h3>
+    <div class="tf-bank">${B.rows.map(r=>{
+      const f=r.fact;
+      return `<div class="met tf-bank-met"><div class="k">${esc(r.label)}</div>
+        <div class="v">${r.value==null?`<span class="tf-na">ยังไม่มีข้อมูล</span>`:tfNum(r.value)+"%"}</div>
+        <div class="d">${esc(r.descTh)}</div>
+        ${f?`<div class="d">${esc(f.periodLabel)}${f.annualized?" · annualized":""}${f.basis?" · "+esc(tfBasisTh(f.basis)):""}${f.reported===false?" · คำนวณ":""}</div>
+        <div class="d"><a href="${escAttr(f.sourceUrl)}" target="_blank" rel="noopener">${esc(f.sourceName)}</a></div>`:""}</div>`;}).join("")}</div>
+    ${B.notes.map(n=>`<div class="warn-box" style="margin-top:6px">${esc(n)}</div>`).join("")}
+    <div class="note">ใช้ตัวเลขตามนิยามที่ธนาคารรายงาน · หุ้นธนาคารไม่ใช้ "หนี้/สินทรัพย์" สรุปความเสี่ยง เพราะเงินฝากคือหนี้ตามธรรมชาติของธุรกิจ</div>
+    ${B.hasAny?"":`<div class="miss-box" style="margin-top:6px">ยังไม่มีตัวเลขธนาคารที่ตรวจสอบได้ — รอผู้ดูแลกรอกใน src/data/thai-fundamentals.json</div>`}</div>`;
 }
 
 /* ---------- Card pieces ---------- */

@@ -20,8 +20,7 @@ investment/
 │  ├─ ips-config.js          IPS, universe หุ้นสหรัฐ, tabs, storage config
 │  ├─ portfolio-engine.js    pure calculation + UI-state migration
 │  ├─ sw.js                  service worker (bump CACHE ทุกครั้งที่เปลี่ยน shell)
-│  ├─ icons / manifest
-│  └─ thai-stock-watchlist/  PWA หุ้นไทยแบบแยกเดี่ยว (wrangler.toml/_worker.js/README ใช้ตอน deploy เดี่ยวเท่านั้น)
+│  └─ icons / manifest
 ├─ deploy/                   🤖 build output (ยัง commit ไว้เผื่อ Cloudflare ดึงจาก git) — ห้ามแก้ตรง
 ├─ docs/                     📄 เอกสารการลงทุน ไม่ใช่โค้ดเว็บ
 │  ├─ my.investment.md       IPS หลักของครอบครัว
@@ -146,7 +145,6 @@ npx wrangler login
 
 - Yahoo Finance อาจไม่มี fundamental field ครบสำหรับหุ้นไทยบางตัว; UI ต้องแสดง `—`
 - Yahoo Finance ไม่ใช่แหล่งงบทางการ ผู้ใช้ควรยืนยันกับ SET หรือ Investor Relations เมื่อใช้ตัดสินใจจริง
-- Thai standalone PWA เปิดผ่าน `file://` ไม่สามารถเรียก `/api/*` ได้ ต้องเปิดผ่าน Cloudflare Pages/worker
 - `npm run dev` (wrangler pages dev) ต้อง login Cloudflare เพราะ binding `AI` เป็น remote — ถ้ายังไม่ login ใช้ `npm run dev:local`
 
 ## บันทึกการตรวจ 2026-11-12

@@ -1,5 +1,15 @@
 // Cloudflare Pages — Advanced Mode Worker
 // Handles /api/chart (Yahoo Finance proxy, same-origin, no CORS) and serves static assets.
+// Service worker "ปลดระวาง" สำหรับแอปหุ้นไทยแบบแยกที่ถูกลบ: ล้าง cache ของตัวเอง ยกเลิกการลงทะเบียน แล้วพาไปหน้าหลัก
+const RETIRED_THAI_SW = `
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil((async () => {
+  for (const k of await caches.keys()) if (k.startsWith("thai-stock-watchlist")) await caches.delete(k);
+  await self.registration.unregister();
+  for (const c of await self.clients.matchAll({ type: "window" })) c.navigate("/");
+})()));
+`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -15,6 +25,17 @@ export default {
     }
     if (url.pathname === "/api/kirin") {
       return handleKirin(request, env);
+    }
+
+    // แอปหุ้นไทยแบบแยก (/thai-stock-watchlist/) ถูกลบแล้ว — รวมอยู่ในหน้าหลักแท็บ "หุ้นไทย"
+    // sw.js เดิมต้องได้ SW ตัวใหม่ที่ลบตัวเอง (ถ้า redirect, browser จะเก็บ SW เก่าที่ cache-first ไว้ต่อ)
+    if (url.pathname.startsWith("/thai-stock-watchlist")) {
+      if (url.pathname === "/thai-stock-watchlist/sw.js") {
+        return new Response(RETIRED_THAI_SW, {
+          headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" },
+        });
+      }
+      return Response.redirect(new URL("/", url).toString(), 301);
     }
 
     // everything else -> static assets (index.html, icons, sw.js, manifest, ...)

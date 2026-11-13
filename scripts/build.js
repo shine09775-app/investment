@@ -8,7 +8,6 @@
  *
  * ขั้นตอน:
  *   1. ล้าง deploy/ แล้วคัดลอก src/ -> deploy/
- *      (ไฟล์เฉพาะ standalone ของ thai-stock-watchlist ไม่ถูกคัดลอก: wrangler.toml, _worker.js, README.md)
  *   2. ตรวจ syntax ของ JS ทุกไฟล์ที่ deploy จริง
  *   3. ตรวจว่า index.html อ้างถึงไฟล์ที่มีอยู่จริง และ service worker แคชครบ
  */
@@ -19,7 +18,6 @@ const { execFileSync } = require("child_process");
 const root = path.join(__dirname, "..");
 const srcDir = path.join(root, "src");
 const outDir = path.join(root, "deploy");
-const THAI_STANDALONE_ONLY = ["wrangler.toml", "_worker.js", "README.md"];
 
 const fail = (m) => { console.error("✗ " + m); process.exitCode = 1; };
 const ok = (m) => console.log("✓ " + m);
@@ -30,19 +28,12 @@ if (!fs.existsSync(path.join(srcDir, "index.html"))) {
   process.exit(1);
 }
 fs.rmSync(outDir, { recursive: true, force: true });
-fs.cpSync(srcDir, outDir, {
-  recursive: true,
-  filter: (from) => {
-    const rel = path.relative(srcDir, from).split(path.sep);
-    return !(rel[0] === "thai-stock-watchlist" && rel.length === 2 && THAI_STANDALONE_ONLY.includes(rel[1]));
-  },
-});
+fs.cpSync(srcDir, outDir, { recursive: true });
 const html = fs.readFileSync(path.join(outDir, "index.html"), "utf8");
 ok(`src/ -> deploy/ (index.html ${Buffer.byteLength(html).toLocaleString()} bytes)`);
 
 // 2. syntax check
-const jsFiles = ["ips-config.js", "portfolio-engine.js", "_worker.js", "sw.js",
-  "thai-stock-watchlist/app.js", "thai-stock-watchlist/sw.js"];
+const jsFiles = ["ips-config.js", "portfolio-engine.js", "_worker.js", "sw.js"];
 for (const f of jsFiles) {
   const p = path.join(outDir, f);
   if (!fs.existsSync(p)) { fail(`ไม่พบไฟล์ ${f}`); continue; }

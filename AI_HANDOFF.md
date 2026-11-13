@@ -46,7 +46,10 @@ investment/
 ### ตลาดไทย
 
 - ปุ่ม SVG ธงไทย: `หุ้นไทย`
-- หุ้นเริ่มต้น 8 ตัว: `ADVANC`, `BDMS`, `CPALL`, `CPN`, `PTT`, `PTTEP`, `KBANK`, `SCB`
+- หุ้น 12 ตัว (`THAI_STOCKS` ใน `src/index.html`): Energy `PTT` `PTTEP` `GULF` · Banking `KBANK` `SCB` · Food `TU` · Healthcare `BDMS` · Telecom `ADVANC` · Consumer `CPALL` · Property `CPN` · Materials `SCC` · Tourism `MINT`
+- ฟิลเตอร์กลุ่มธุรกิจ (`THAI_SECTORS`) + ฟิลเตอร์สถานะ (มีคะแนน / DCA / น่าสนใจ / รอราคา) เหมือนแท็บ Mega Trend
+- คะแนนรายตัวและ Watchlist Opportunity Index ใช้ตรรกะเดียวกับสหรัฐ: `EN.valuationFromHistory()` (P/E งบปีเทียบมัธยฐาน 5 ปี + `VALUATION_GUARDS`) → `EN.scoreStock()` (= `cardMode` + `buffettScore` 50/30/20) → `EN.watchlistIndex()`; ตัวที่ข้อมูลไม่ผ่านด่าน (เช่น GULF ประวัติสั้น, SCC กำไรผันผวน) เป็นโหมด DCA ไม่มีคะแนน
+- เพิ่มหุ้น: ใส่ object ใน `THAI_STOCKS` (sector ต้องเป็น key ใน `THAI_SECTORS`) แล้ว bump `CACHE` ใน `src/sw.js`
 - การ์ดแสดงราคา, P/E, EPS, เงินปันผล 12 เดือน, P/BV, หนี้/สินทรัพย์ และส่วนลดจาก High 52 สัปดาห์ เมื่อข้อมูลมี
 - แตะการ์ดเพื่อเปิด detail drawer: % เปลี่ยนแปลงรายวัน, กราฟราคา 1M/3M/6M/1Y/2Y (ใช้ `chartBlock()`/`loadChart()` ร่วมกับฝั่งสหรัฐผ่าน `cmCtx`), ตัวชี้วัดครบ, Operating income, ความเสี่ยง, ตัวเลขธุรกิจที่ควรติดตาม, และลิงก์ Yahoo Finance
 - ปุ่ม `รีเฟรช` ล่างหน้าจอเรียกตลาดที่กำลังเลือก (`refreshActiveMarket()`)

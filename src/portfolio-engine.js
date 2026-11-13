@@ -142,6 +142,53 @@ function cardMode(sec, val) {
   return { m: "timing", why: "" };
 }
 
+/**
+ * มูลค่าเทียบอดีตของตัวเอง — ใช้ร่วมกันทั้งหุ้นสหรัฐและหุ้นไทย
+ *   annual   : [{d:"YYYY-MM-DD", eps}]   EPS งบปี (diluted)
+ *   monthly  : [{t:<unix sec>, c:<close>}] ราคารายเดือนย้อนหลัง ~5 ปี
+ *   price    : ราคาล่าสุด
+ * คืน { eps, medPE, curPE, ratio } หรือ { reason } เมื่อข้อมูลไม่ผ่าน VALUATION_GUARDS
+ * งบออกช้ากว่าปิดงวด ~45 วัน จึงหน่วงก่อนนำ EPS ไปจับคู่กับราคา
+ */
+const EPS_LAG_MS = 45 * 86400 * 1000;
+function valuationFromHistory({ annual, monthly, price, nowMs }) {
+  const G = CFG.VALUATION_GUARDS;
+  const ann = (annual || []).filter((x) => x && isNum(x.eps) && x.d)
+    .slice().sort((a, b) => new Date(a.d) - new Date(b.d));
+  const pos = ann.filter((x) => x.eps > 0);
+  if (ann.length < G.minAnnualPeriods) return { reason: `งบปีย้อนหลังไม่พอ (ต้องมี ≥ ${G.minAnnualPeriods} ปี)` };
+  if (pos.length < 2) return { reason: "บริษัทขาดทุน — ไม่มี P/E ให้เทียบ" };
+  const hi = Math.max(...pos.map((x) => x.eps)), lo = Math.min(...pos.map((x) => x.eps));
+  if (hi / lo > G.maxEpsSpread) {
+    return { reason: `กำไรโตเร็วเกินกว่าจะเทียบอดีต (EPS ${lo.toFixed(2)}→${hi.toFixed(2)} = ${(hi / lo).toFixed(1)}×)` };
+  }
+  const epsAt = (tm) => { let e = null; for (const x of ann) if (new Date(x.d).getTime() + EPS_LAG_MS <= tm) e = x.eps; return e; };
+  const pes = [];
+  for (const p of monthly || []) {
+    if (!p || !isNum(p.c) || !isNum(p.t)) continue;
+    const e = epsAt(p.t * 1000);
+    if (e != null && e > 0) pes.push(p.c / e);
+  }
+  // needsHistory=true: งบผ่านด่านแล้ว ขาดแค่ราคาย้อนหลัง (ผู้เรียกใช้ตัดสินใจว่าจะดึงราคา 5 ปีหรือไม่)
+  if (pes.length < G.minPePoints) return { reason: `ประวัติ P/E สั้นเกินไป (${pes.length}/${G.minPePoints} เดือน)`, needsHistory: true };
+  pes.sort((a, b) => a - b);
+  const medPE = pes[Math.floor(pes.length / 2)];
+  const eps = epsAt(isNum(nowMs) ? nowMs : Date.now()) ?? ann[ann.length - 1].eps;
+  if (!(eps > 0)) return { reason: "กำไรงบปีล่าสุดติดลบ" };
+  if (!isNum(price) || price <= 0) return { eps, medPE, reason: "ไม่มีราคาล่าสุด" };
+  const curPE = price / eps;
+  return { eps, medPE, curPE, ratio: curPE / medPE };
+}
+
+/**
+ * ให้คะแนนหุ้นรายตัวด้วยตรรกะเดียวกับ Mega Trend (ใช้กับหุ้นไทยที่ไม่มี sleeve)
+ * คืน { mode, modeWhy, score }  — score มีเฉพาะโหมด timing
+ */
+function scoreStock({ price, hi52, rsiv, val }) {
+  const m = cardMode({ sleeve: "mega" }, val);
+  return { mode: m.m, modeWhy: m.why, score: m.m === "timing" ? buffettScore({ price, hi52, rsiv, val }) : null };
+}
+
 /** เฉพาะการ์ดโหมด timing เท่านั้นที่เข้า Watchlist Opportunity Index */
 function watchlistIndex(scoresByTicker) {
   const vals = Object.values(scoresByTicker || {}).filter(isNum);
@@ -653,7 +700,7 @@ return {
   // indicators
   rsi, sma, drawdownPct,
   // stock scoring
-  okVal, buffettScore, signal, cardMode, watchlistIndex,
+  okVal, buffettScore, signal, cardMode, watchlistIndex, valuationFromHistory, scoreStock,
   opportunityStatus, matchesStatusFilter,
   // core / cash
   coreDcaLevel, cashTiming, rsiContext,

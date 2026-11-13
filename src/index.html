@@ -360,17 +360,35 @@ async function fetchYahoo(ticker, range="1y", interval="1d", events=""){
 }
 
 /* ---------- Thai Stock Watchlist — ใช้ worker /api เดียวกับเว็บหลัก ---------- */
-const THAI_STOCKS = [
-  {t:"ADVANC", n:"แอดวานซ์ อินโฟร์ เซอร์วิส", sector:"สื่อสาร", role:"รายได้ประจำจากมือถือและเน็ตบ้าน", risk:"ต้นทุนโครงข่ายและคลื่นกดกระแสเงินสด", metrics:["รายได้ค่าบริการ","ARPU","กระแสเงินสดหลังลงทุน","หนี้สุทธิ"]},
-  {t:"BDMS", n:"กรุงเทพดุสิตเวชการ", sector:"สุขภาพ", role:"เพิ่มธุรกิจสุขภาพจากผู้ป่วยไทยและต่างชาติ", risk:"รายได้โตแต่กำไรลดจากต้นทุนบุคลากร", metrics:["รายได้ผู้ป่วย","อัตรากำไร","ต้นทุนบุคลากร"]},
-  {t:"CPALL", n:"ซีพี ออลล์", sector:"ค้าปลีก", role:"รับการใช้จ่ายประจำวันผ่านร้านสะดวกซื้อ", risk:"ยอดขายโตจากสาขาใหม่ แต่ยอดขายสาขาเดิมอ่อน", metrics:["ยอดขายสาขาเดิม","อัตรากำไร","หนี้และดอกเบี้ย","กระแสเงินสด"]},
-  {t:"CPN", n:"เซ็นทรัลพัฒนา", sector:"อสังหาริมทรัพย์เชิงพาณิชย์", role:"รายได้ค่าเช่าและโครงการใหม่", risk:"ค่าเช่าหรืออัตราเช่าลดพร้อมเงินลงทุนเพิ่ม", metrics:["ค่าเช่าสาขาเดิม","อัตราเช่าพื้นที่","เงินลงทุน","หนี้และต้นทุนการเงิน"]},
-  {t:"PTT", n:"ปตท.", sector:"พลังงาน", role:"ธุรกิจพลังงานครบวงจร", risk:"กำไรผันผวนตามราคาพลังงานและนโยบายรัฐ", metrics:["กำไรธุรกิจก๊าซ","ค่าการตลาด","กำไรบริษัทย่อย","หนี้สุทธิ"]},
-  {t:"PTTEP", n:"ปตท. สำรวจและผลิตปิโตรเลียม", sector:"พลังงาน", role:"พลังงานต้นน้ำ ใช้ติดตามความเสี่ยงการกระจุกตัว", risk:"ราคาพลังงาน ต้นทุนผลิต และความเสี่ยงโครงการ", metrics:["ปริมาณขาย","ต้นทุนต่อหน่วย","ราคาขายเฉลี่ย","กระแสเงินสดหลังลงทุน"]},
-  {t:"KBANK", n:"ธนาคารกสิกรไทย", sector:"ธนาคาร", role:"ฐานลูกค้ารายย่อยและธุรกิจ", risk:"คุณภาพสินทรัพย์และต้นทุนเครดิตอ่อนลง", metrics:["NIM","NPL","Credit cost","เงินกองทุน"]},
-  {t:"SCB", n:"เอสซีบี เอกซ์", sector:"ธนาคาร", role:"ธนาคารและแพลตฟอร์มการเงิน", risk:"คุณภาพสินทรัพย์และผลการลงทุนใหม่", metrics:["NIM","NPL","Credit cost","ROE"]},
+// กลุ่มธุรกิจ (ฟิลเตอร์หน้าหุ้นไทย) — เพิ่มหุ้นใหม่: ใส่ sector เป็น key ในนี้
+const THAI_SECTORS = [
+  {key:"energy",    label:"Energy",     color:"#f59e42"},
+  {key:"banking",   label:"Banking",    color:"#4f8cff"},
+  {key:"food",      label:"Food",       color:"#26c281"},
+  {key:"health",    label:"Healthcare", color:"#2dd4bf"},
+  {key:"telecom",   label:"Telecom",    color:"#a78bfa"},
+  {key:"consumer",  label:"Consumer",   color:"#f0c040"},
+  {key:"property",  label:"Property",   color:"#ef8a9a"},
+  {key:"materials", label:"Materials",  color:"#9aa7bd"},
+  {key:"tourism",   label:"Tourism",    color:"#e879f9"},
 ];
-const THAI_CACHE_KEY = "thai-stock-live-v2";
+const THAI_STOCKS = [
+  {t:"PTT", n:"ปตท.", sector:"energy", role:"ธุรกิจพลังงานครบวงจร", risk:"กำไรผันผวนตามราคาพลังงานและนโยบายรัฐ", metrics:["กำไรธุรกิจก๊าซ","ค่าการตลาด","กำไรบริษัทย่อย","หนี้สุทธิ"]},
+  {t:"PTTEP", n:"ปตท. สำรวจและผลิตปิโตรเลียม", sector:"energy", role:"พลังงานต้นน้ำ ใช้ติดตามความเสี่ยงการกระจุกตัว", risk:"ราคาพลังงาน ต้นทุนผลิต และความเสี่ยงโครงการ", metrics:["ปริมาณขาย","ต้นทุนต่อหน่วย","ราคาขายเฉลี่ย","กระแสเงินสดหลังลงทุน"]},
+  {t:"GULF", n:"กัลฟ์ ดีเวลลอปเมนท์", sector:"energy", role:"โรงไฟฟ้าที่มีสัญญาขายไฟระยะยาว และโครงสร้างพื้นฐาน", risk:"หนี้สูงจากการลงทุนต่อเนื่อง และราคาหุ้นสะท้อนการเติบโตไปมากแล้ว", metrics:["กำลังผลิตที่ COD","ส่วนแบ่งกำไรบริษัทร่วม","หนี้สุทธิต่อทุน","ต้นทุนการเงิน"]},
+  {t:"KBANK", n:"ธนาคารกสิกรไทย", sector:"banking", role:"ฐานลูกค้ารายย่อยและธุรกิจ", risk:"คุณภาพสินทรัพย์และต้นทุนเครดิตอ่อนลง", metrics:["NIM","NPL","Credit cost","เงินกองทุน"]},
+  {t:"SCB", n:"เอสซีบี เอกซ์", sector:"banking", role:"ธนาคารและแพลตฟอร์มการเงิน", risk:"คุณภาพสินทรัพย์และผลการลงทุนใหม่", metrics:["NIM","NPL","Credit cost","ROE"]},
+  {t:"TU", n:"ไทยยูเนี่ยน กรุ๊ป", sector:"food", role:"ผู้ผลิตอาหารทะเลแปรรูปส่งออกรายใหญ่ของโลก", risk:"ราคาวัตถุดิบ ค่าเงินบาท และผลขาดทุนจากเงินลงทุนต่างประเทศ", metrics:["อัตรากำไรขั้นต้น","ยอดขายแยกธุรกิจ","ราคาปลาทูน่า","ค่าเงินบาท"]},
+  {t:"BDMS", n:"กรุงเทพดุสิตเวชการ", sector:"health", role:"เพิ่มธุรกิจสุขภาพจากผู้ป่วยไทยและต่างชาติ", risk:"รายได้โตแต่กำไรลดจากต้นทุนบุคลากร", metrics:["รายได้ผู้ป่วย","อัตรากำไร","ต้นทุนบุคลากร"]},
+  {t:"ADVANC", n:"แอดวานซ์ อินโฟร์ เซอร์วิส", sector:"telecom", role:"รายได้ประจำจากมือถือและเน็ตบ้าน", risk:"ต้นทุนโครงข่ายและคลื่นกดกระแสเงินสด", metrics:["รายได้ค่าบริการ","ARPU","กระแสเงินสดหลังลงทุน","หนี้สุทธิ"]},
+  {t:"CPALL", n:"ซีพี ออลล์", sector:"consumer", role:"รับการใช้จ่ายประจำวันผ่านร้านสะดวกซื้อ", risk:"ยอดขายโตจากสาขาใหม่ แต่ยอดขายสาขาเดิมอ่อน", metrics:["ยอดขายสาขาเดิม","อัตรากำไร","หนี้และดอกเบี้ย","กระแสเงินสด"]},
+  {t:"CPN", n:"เซ็นทรัลพัฒนา", sector:"property", role:"รายได้ค่าเช่าศูนย์การค้าและโครงการใหม่", risk:"ค่าเช่าหรืออัตราเช่าลดพร้อมเงินลงทุนเพิ่ม", metrics:["ค่าเช่าสาขาเดิม","อัตราเช่าพื้นที่","เงินลงทุน","หนี้และต้นทุนการเงิน"]},
+  {t:"SCC", n:"ปูนซิเมนต์ไทย", sector:"materials", role:"วัสดุก่อสร้าง ปิโตรเคมี และบรรจุภัณฑ์", risk:"วัฏจักรปิโตรเคมีขาลงและการแข่งขันจากจีน", metrics:["ส่วนต่างราคาปิโตรเคมี","กำไรธุรกิจซีเมนต์","ธุรกิจบรรจุภัณฑ์","หนี้สุทธิต่อ EBITDA"]},
+  {t:"MINT", n:"ไมเนอร์ อินเตอร์เนชั่นแนล", sector:"tourism", role:"โรงแรมและร้านอาหารทั่วโลก รับการฟื้นตัวของการท่องเที่ยว", risk:"หนี้สูงและความผันผวนของการท่องเที่ยวและค่าเงิน", metrics:["RevPAR","อัตราการเข้าพัก","ยอดขายสาขาเดิม (อาหาร)","หนี้สุทธิต่อทุน"]},
+];
+const thaiSectorOf = key => THAI_SECTORS.find(x=>x.key===key) || {key, label:key, color:"var(--sub)"};
+let thaiSectorFilter = "all", thaiStatusFilter = "all";
+const THAI_CACHE_KEY = "thai-stock-live-v3";
 let thaiData = {};
 let thaiBusy = false;
 let thaiTicker = null;
@@ -417,7 +435,11 @@ function thaiMetricData(daily,monthly,fund){
   const qOp=thaiRows(fund,"quarterlyOperatingIncome").slice(-4), operating=qOp.length===4?qOp.reduce((s,x)=>s+x.v,0):thaiLast(thaiRows(fund,"annualOperatingIncome"))?.v??null;
   const latest=type=>thaiLast(thaiRows(fund,"quarterly"+type))?.v??thaiLast(thaiRows(fund,"annual"+type))?.v??null;
   const assets=latest("TotalAssets"), debt=latest("TotalDebt"), equity=latest("StockholdersEquity"), marketCap=thaiLast(thaiRows(fund,"trailingMarketCap"))?.v??null;
-  return {price, high, chgPct:price&&prevClose?(price-prevClose)/prevClose*100:null, dd:price&&high?(price/high-1)*100:null, pe, peMedian:thaiMedian(pes), eps, yieldPct:price&&divs>0?divs/price*100:null, operating, pbv:marketCap&&equity>0?marketCap/equity:null, debtAssets:debt!=null&&assets>0?debt/assets*100:null, marketTime:meta.regularMarketTime||thaiLast(day)?.t||null};
+  // คะแนนจังหวะ: ตรรกะเดียวกับหุ้นสหรัฐ (มูลค่าเทียบอดีต 50 / ส่วนลดจาก High 30 / RSI 20)
+  const val=EN.valuationFromHistory({annual:annualEps.map(r=>({d:r.d,eps:r.v})), monthly:mon, price});
+  const sc=EN.scoreStock({price, hi52:high, rsiv:EN.rsi(day.map(p=>p.c)), val});
+  return {val:EN.okVal(val)?{curPE:val.curPE,medPE:val.medPE,ratio:val.ratio,asOfMs:Date.now()}:{reason:val.reason}, mode:sc.mode, modeWhy:sc.modeWhy, score:sc.score, drawdown:EN.drawdownPct(price,high),
+    price, high, chgPct:price&&prevClose?(price-prevClose)/prevClose*100:null, dd:price&&high?(price/high-1)*100:null, pe, peMedian:thaiMedian(pes), eps, yieldPct:price&&divs>0?divs/price*100:null, operating, pbv:marketCap&&equity>0?marketCap/equity:null, debtAssets:debt!=null&&assets>0?debt/assets*100:null, marketTime:meta.regularMarketTime||thaiLast(day)?.t||null};
 }
 async function loadThaiOne(sec){
   const t=sec.t+".BK";
@@ -428,7 +450,7 @@ function renderThaiStatus(info={}){
   const el=document.getElementById("statusBar");
   const parts=[`<span class="dot" style="background:${info.loading?"var(--orange)":"var(--green)"}"></span>ตลาดไทย`,"<span class=\"sep\">·</span>",`แหล่ง ${SRC_YAHOO}`];
   if(info.loading)parts.push("<span class=\"sep\">·</span><span class=\"loading\">กำลังอัปเดตหุ้นไทย…</span>");
-  if(info.loaded)parts.push(`<span class="sep">·</span>อัปเดต ${info.loaded}/8 รายการ`);
+  if(info.loaded)parts.push(`<span class="sep">·</span>อัปเดต ${info.loaded}/${THAI_STOCKS.length} รายการ`);
   if(info.failed)parts.push(`<span class="sep">·</span><span class="err">โหลดไม่สำเร็จ ${info.failed} รายการ</span>`);
   el.className="statusbar";el.innerHTML=parts.join(" ");
 }
@@ -471,36 +493,16 @@ async function getValuation(t, price){
     if(!c || Date.now()-c.ts > 24*3600*1000){
       c = {ts:Date.now(), eps:null, medPE:null, reason:"ไม่มีข้อมูลงบกำไร"};
       const raw = await fetchEps(t);
-      const ann = ((raw&&raw.a)||[]).slice().sort((a,b)=>new Date(a.d)-new Date(b.d));
-      const pos = ann.filter(x=>x.eps>0);
-      if(ann.length < G.minAnnualPeriods){
-        c.reason = `งบปีย้อนหลังไม่พอ (ต้องมี ≥ ${G.minAnnualPeriods} ปี)`;
-      }else if(pos.length < 2){
-        c.reason = "บริษัทขาดทุน — ไม่มี P/E ให้เทียบ";
+      const annual = (raw&&raw.a)||[];
+      // ดึงราคา 5 ปีเฉพาะเมื่องบผ่านด่านแรก (ประหยัด request) — ตรรกะทั้งหมดอยู่ใน EN.valuationFromHistory
+      const pre = EN.valuationFromHistory({annual, monthly:[], price});
+      if(pre.needsHistory){
+        const hist = await fetchYahoo(t, "5y", "1mo");
+        const ts = hist.timestamp||[], cl = (hist.indicators&&hist.indicators.quote&&hist.indicators.quote[0].close)||[];
+        const v = EN.valuationFromHistory({annual, monthly: ts.map((x,i)=>({t:x, c:cl[i]})), price});
+        c.medPE = v.medPE ?? null; c.eps = v.eps ?? null; c.reason = v.medPE ? null : v.reason;
       }else{
-        const hi = Math.max(...pos.map(x=>x.eps)), lo = Math.min(...pos.map(x=>x.eps));
-        if(hi/lo > G.maxEpsSpread){
-          c.reason = `กำไรโตเร็วเกินกว่าจะเทียบอดีต (EPS ${lo.toFixed(2)}→${hi.toFixed(2)} = ${(hi/lo).toFixed(1)}×)`;
-        }else{
-          const hist = await fetchYahoo(t, "5y", "1mo");
-          const ts = hist.timestamp||[], cl = (hist.indicators&&hist.indicators.quote&&hist.indicators.quote[0].close)||[];
-          const LAG = 45*86400*1000; // งบออกช้ากว่าปิดงวด ~45 วัน
-          const epsAt = tm => { let e=null; for(const x of ann){ if(new Date(x.d).getTime()+LAG <= tm) e = x.eps; } return e; };
-          const pes = [];
-          for(let i=0;i<ts.length;i++){
-            const px = cl[i]; if(px==null) continue;
-            const e = epsAt(ts[i]*1000);
-            if(e!=null && e>0) pes.push(px/e);
-          }
-          if(pes.length < G.minPePoints){
-            c.reason = `ประวัติ P/E สั้นเกินไป (${pes.length}/${G.minPePoints} เดือน)`;
-          }else{
-            pes.sort((a,b)=>a-b);
-            c.medPE = pes[Math.floor(pes.length/2)];
-            c.eps   = epsAt(Date.now()) ?? ann[ann.length-1].eps;
-            c.reason = (c.eps > 0) ? null : "กำไรงบปีล่าสุดติดลบ";
-          }
-        }
+        c.reason = pre.reason;
       }
       try{ localStorage.setItem(KEY, JSON.stringify(c)); }catch(_){}
     }
@@ -677,25 +679,57 @@ function showActiveMarket(){
   }
 }
 function refreshActiveMarket(){ return UI.market==="thai" ? loadThaiStocks(true) : loadAll(); }
+function thaiReason(d){
+  if(d.mode==="timing") return EN.candidateReason({}, {val:d.val, dd:d.drawdown});
+  return "ไม่ให้คะแนนจังหวะ · "+(d.modeWhy||"ข้อมูลมูลค่าไม่พอ");
+}
 function thaiAnalysis(d){
   const rows=[];
-  if(thaiNum(d.pe)&&thaiNum(d.peMedian)){const diff=(d.pe/d.peMedian-1)*100;rows.push(`P/E ${diff>=0?"สูงกว่า":"ต่ำกว่า"}มัธยฐานอดีตของตัวเอง ${thaiPct(Math.abs(diff))}`);}
+  if(EN.okVal(d.val)){const diff=(d.val.ratio-1)*100;rows.push(`P/E งบปี ${thaiRatio(d.val.curPE)} ${diff>=0?"สูงกว่า":"ต่ำกว่า"}มัธยฐาน 5 ปีของตัวเอง (${thaiRatio(d.val.medPE)}) ${thaiPct(Math.abs(diff))}`);}
+  else if(d.val&&d.val.reason)rows.push(`ประเมินมูลค่าเทียบอดีตไม่ได้ — ${esc(d.val.reason)}`);
   if(thaiNum(d.dd))rows.push(d.dd<0?`ราคาต่ำกว่าจุดสูง 52 สัปดาห์ ${thaiPct(Math.abs(d.dd))}`:"ราคาอยู่ใกล้จุดสูง 52 สัปดาห์");
   if(thaiNum(d.debtAssets))rows.push(`หนี้คิดเป็น ${thaiPct(d.debtAssets)} ของสินทรัพย์ล่าสุด`);
   return rows;
 }
 function thaiCard(sec,d){
-  if(!d||d.error)return `<div class="card thai-card" data-thai-detail="${sec.t}"><div class="row1"><div><div class="tk">${sec.t}</div><div class="nm">${esc(sec.n)}</div></div>${thaiFlagSvg("thai")}</div><div class="err" style="margin-top:7px">⚠️ โหลดข้อมูลไม่สำเร็จ — ไม่แสดงค่าเป็น 0</div></div>`;
+  const sc=thaiSectorOf(sec.sector);
+  if(!d||d.error)return `<div class="card thai-card" data-thai-detail="${sec.t}"><div class="accent" style="background:${sc.color}"></div><div class="row1"><div><div class="tk">${sec.t}</div><div class="nm">${esc(sec.n)}</div></div>${thaiFlagSvg("thai")}</div><div class="err" style="margin-top:7px">⚠️ โหลดข้อมูลไม่สำเร็จ — ไม่แสดงค่าเป็น 0</div></div>`;
+  const chgClr=d.chgPct==null?"var(--sub)":d.chgPct>=0?"var(--green)":"var(--red)";
   return `<div class="card thai-card" data-thai-detail="${sec.t}">
-    <div class="row1"><div><div class="tk">${sec.t}</div><div class="nm">${esc(sec.n)}</div><div class="theme-tag">${esc(sec.sector)}</div></div><div>${thaiFlagSvg("thai")}<div class="price" style="margin-top:5px">${thaiFmt(d.price)} ฿</div></div></div>
+    <div class="accent" style="background:${sc.color}"></div>
+    <div class="row1"><div><div class="tk">${sec.t}</div><div class="nm">${esc(sec.n)}</div><div class="theme-tag">${esc(sc.label)}</div></div>
+      <div><div class="price">${thaiFmt(d.price)} ฿</div><div class="chg" style="color:${chgClr}">${d.chgPct==null?"—":(d.chgPct>=0?"▲ ":"▼ ")+fmt(Math.abs(d.chgPct),2)+"%"}</div></div></div>
+    ${d.mode?`<div class="pills">${statusBadge(d)}</div><div class="reason">${esc(thaiReason(d))}</div>`:""}
     ${metricsRow([{k:"P/E",v:thaiRatio(d.pe),d:"Yahoo"},{k:"EPS",v:thaiFmt(d.eps),d:"Trailing"},{k:"ปันผล 12M",v:thaiPct(d.yieldPct)},{k:"P/BV",v:thaiRatio(d.pbv)},{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets)},{k:"ต่ำกว่า High",v:thaiNum(d.dd)&&d.dd<0?"-"+thaiPct(Math.abs(d.dd)):"—",c:"var(--orange)"}])}
-    <div class="thai-reason">${esc(sec.role)}</div><div class="datestamp">📅 ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</div>
-    <button class="cta" data-thai-detail="${sec.t}">${thaiFlagSvg("thai")} ดูรายละเอียดหุ้นไทย</button></div>`;
+    <div class="datestamp">📅 ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</div></div>`;
 }
+const THAI_STATUS_FILTERS = CFG.MEGA_STATUS_FILTERS.filter(f=>f.key!=="moon");   // หุ้นไทยไม่มี Moonshot
 function renderThaiWatchlist(){
   const el=document.getElementById("tabThai");
-  const ready=THAI_STOCKS.filter(s=>thaiData[s.t]&&!thaiData[s.t].error).length;
-  el.innerHTML=`<div class="panel"><h2>${thaiFlagSvg("thai")} Thai Stock Watchlist</h2><div class="lead">ติดตามธุรกิจไทยระยะ 5–10 ปี แยกจากพอร์ตสหรัฐ และไม่ใช่คำแนะนำซื้อขาย</div><div class="info-box">ข้อมูลจาก Yahoo Finance · แสดง P/E, EPS, ปันผล, Operating income, P/BV และหนี้/สินทรัพย์ เมื่อมีข้อมูล</div><div class="note">โหลดแล้ว ${ready}/8 บริษัท · แตะการ์ดเพื่อดูเหตุผล ความเสี่ยง และการเทียบกับอดีต</div></div><div class="thai-title">${thaiFlagSvg("thai")} หุ้นที่กำลังศึกษา <span class="hint">8 บริษัท</span></div>${THAI_STOCKS.map(s=>thaiCard(s,thaiData[s.t])).join("")}`;
+  const ok=s=>thaiData[s.t]&&!thaiData[s.t].error;
+  const ready=THAI_STOCKS.filter(ok).length;
+  const scores={};THAI_STOCKS.forEach(s=>{const d=thaiData[s.t];if(ok(s)&&d.mode==="timing")scores[s.t]=d.score;});
+  const wi=EN.watchlistIndex(scores);
+  const passes=s=>EN.matchesStatusFilter({sleeve:"mega"},thaiData[s.t],thaiStatusFilter);
+  const count=k=>THAI_STOCKS.filter(s=>s.sector===k).length;
+  const sectorBtns=[{key:"all",label:`All ${THAI_STOCKS.length}`,color:"var(--purple)"}].concat(THAI_SECTORS.filter(x=>count(x.key)).map(x=>({key:x.key,label:`${x.label} ${count(x.key)}`,color:x.color})));
+  let body="";
+  for(const sc of THAI_SECTORS){
+    if(thaiSectorFilter!=="all"&&thaiSectorFilter!==sc.key)continue;
+    const items=THAI_STOCKS.filter(s=>s.sector===sc.key&&passes(s));
+    if(!items.length)continue;
+    body+=`<div class="sec-title"><span style="color:${sc.color}">${esc(sc.label)}</span><span class="hint">${items.length} บริษัท</span></div>`+items.map(s=>thaiCard(s,thaiData[s.t])).join("");
+  }
+  if(!body)body=`<div class="miss-box">ไม่มีรายการที่ตรงกับตัวกรองนี้</div>`;
+  el.innerHTML=`<div class="panel"><h2>${thaiFlagSvg("thai")} Thai Stock Watchlist</h2><div class="lead">ติดตามธุรกิจไทยระยะ 5–10 ปี แยกจากพอร์ตสหรัฐ และไม่ใช่คำแนะนำซื้อขาย</div><div class="note">โหลดแล้ว ${ready}/${THAI_STOCKS.length} บริษัท · ข้อมูลจาก Yahoo Finance · แตะการ์ดเพื่อดูกราฟ เหตุผล และความเสี่ยง</div></div>
+    <div class="filters themes" id="thaiSectorFilters">${sectorBtns.map(b=>`<button data-sector="${b.key}" aria-pressed="${thaiSectorFilter===b.key}" style="${thaiSectorFilter===b.key?`border-color:${b.color};color:#fff`:""}">${esc(b.label)}</button>`).join("")}</div>
+    <div class="filters" id="thaiStatusFilters">${THAI_STATUS_FILTERS.map(f=>`<button data-status="${f.key}" aria-pressed="${thaiStatusFilter===f.key}">${esc(f.labelTh)}</button>`).join("")}</div>
+    <div class="panel"><h2>⚖️ ${esc(CFG.WATCHLIST_INDEX.label)} ${thaiFlagSvg("thai")}</h2>
+      <div class="gauge" style="margin-top:8px"><div class="val" style="color:${wi.value==null?"var(--mut)":"var(--txt)"}">${wi.value==null?"–":wi.value}</div><div class="bar"><div class="pin" style="left:${wi.value==null?50:wi.value}%"></div></div></div>
+      <div class="note">${esc(CFG.WATCHLIST_INDEX.noteTh)}${wi.n?` · จาก ${wi.n}/${THAI_STOCKS.length} ตัวที่ประเมินได้`:""} · ตรรกะเดียวกับหุ้นสหรัฐ</div></div>
+    ${body}`;
+  el.querySelectorAll("#thaiSectorFilters button").forEach(b=>b.onclick=()=>{thaiSectorFilter=b.dataset.sector;renderThaiWatchlist();});
+  el.querySelectorAll("#thaiStatusFilters button").forEach(b=>b.onclick=()=>{thaiStatusFilter=b.dataset.status;renderThaiWatchlist();});
   el.querySelectorAll("[data-thai-detail]").forEach(b=>b.onclick=e=>{e.stopPropagation();openThaiSheet(b.dataset.thaiDetail);});
 }
 function openThaiSheet(t){
@@ -705,16 +739,17 @@ function closeThaiSheet(){document.getElementById("thaiSheet").style.display="no
 function renderThaiSheet(){
   const sec=THAI_STOCKS.find(s=>s.t===thaiTicker),d=thaiData[thaiTicker]||{};
   document.getElementById("thaiSheetName").innerHTML=`${thaiFlagSvg("thai")} ${esc(sec.n)}`;
-  document.getElementById("thaiSheetTick").textContent=`${sec.t}.BK · ${sec.sector}`;
+  document.getElementById("thaiSheetTick").textContent=`${sec.t}.BK · ${thaiSectorOf(sec.sector).label}`;
   if(d.error||!thaiNum(d.price)){document.getElementById("thaiSheetBody").innerHTML=`<div class="miss-box">ยังไม่มีข้อมูลจาก Yahoo Finance · ลองกด รีเฟรช อีกครั้ง</div>`;return;}
   const analysis=thaiAnalysis(d);
   const chgClr=d.chgPct==null?"var(--sub)":d.chgPct>=0?"var(--green)":"var(--red)";
   document.getElementById("thaiSheetBody").innerHTML=`<div class="sh-price"><span class="p">${thaiFmt(d.price)} ฿</span><span class="c" style="color:${chgClr}">${d.chgPct==null?"":(d.chgPct>=0?"+":"")+fmt(d.chgPct,2)+"%"}</span></div>
+    ${d.mode?`<div class="pills">${statusBadge(d)}</div><div class="reason" style="margin:4px 0 2px">${esc(thaiReason(d))}</div>`:""}
     ${chartBlock()}
     <div class="thai-sheet-metrics">${[{k:"P/E",v:thaiRatio(d.pe),d:"Yahoo ล่าสุด"},{k:"EPS",v:thaiFmt(d.eps),d:"Trailing EPS"},{k:"ปันผล",v:thaiPct(d.yieldPct),d:"12 เดือน"},{k:"Operating income",v:thaiMoney(d.operating),d:"TTM / ล่าสุด"},{k:"P/BV",v:thaiRatio(d.pbv),d:"Market cap ÷ equity"},{k:"หนี้/สินทรัพย์",v:thaiPct(d.debtAssets),d:"งบล่าสุด"}].map(m=>`<div class="met"><div class="k">${m.k}</div><div class="v">${m.v}</div><div class="d">${m.d}</div></div>`).join("")}</div>
     <div class="thai-analysis">${analysis.length?`<ul>${analysis.map(x=>`<li>${x}</li>`).join("")}</ul>`:"ข้อมูลย้อนหลังยังไม่พอสำหรับการเปรียบเทียบ"}</div>
     <div class="sh-sec"><h3>บทบาทที่ติดตาม</h3><p>${esc(sec.role)}</p></div><div class="sh-sec"><h3>ความเสี่ยงที่ทบทวน</h3><p>${esc(sec.risk)}</p></div><div class="sh-sec"><h3>ตัวเลขธุรกิจที่ต้องติดตาม</h3><div class="pills">${sec.metrics.map(x=>`<span class="pill">${esc(x)}</span>`).join("")}</div></div>
-    <div class="sh-sec"><h3>คุณภาพข้อมูล</h3><ul class="tight"><li>ราคา ณ ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</li><li>งบการเงินอาจรายงานคนละวันกับราคา</li><li>ค่าที่ไม่มีข้อมูลจะแสดง “—” ไม่ใช่ศูนย์</li></ul><a class="cta" href="https://finance.yahoo.com/quote/${sec.t}.BK" target="_blank" rel="noopener">เปิด ${sec.t}.BK ใน Yahoo Finance ↗</a></div>`;
+    <div class="sh-sec"><h3>คุณภาพข้อมูล</h3><ul class="tight"><li>ราคา ณ ${d.marketTime?fmtDT(d.marketTime):"ยังไม่มีวันที่"} · ${SRC_YAHOO}</li><li>งบการเงินอาจรายงานคนละวันกับราคา</li><li>ค่าที่ไม่มีข้อมูลจะแสดง “—” ไม่ใช่ศูนย์</li><li>คะแนน: มูลค่าเทียบอดีต ${CFG.BUFFETT_WEIGHTS.valuation}% · ส่วนลดจาก High ${CFG.BUFFETT_WEIGHTS.drawdown}% · RSI ${CFG.BUFFETT_WEIGHTS.rsi}% (เหมือนหุ้นสหรัฐ)</li>${CFG.SCORE_DISCLAIMER_TH.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><a class="cta" href="https://finance.yahoo.com/quote/${sec.t}.BK" target="_blank" rel="noopener">เปิด ${sec.t}.BK ใน Yahoo Finance ↗</a></div>`;
   renderCmRanges(); loadChart();
 }
 
